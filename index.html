@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Chef Casa">
+<meta name="theme-color" content="#F0913A">
+<title>Chef en Casa 🍳</title>
+<link rel="manifest" href="manifest.json">
+<!-- Inline SVG icons as apple-touch-icon fallback -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23F0913A' rx='20'/><text y='.9em' font-size='75' x='12'>🍳</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,700;0,900;1,400&family=Cabinet+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0F0D0A;--surface:#1A1712;--surface2:#242018;--border:#2E2820;
+  --orange:#F0913A;--orange2:#E07020;--gold:#D4A849;--green:#5A9E6F;
+  --green2:#3D7A52;--red:#D95F4B;--blue:#4A8FBF;--purple:#8B6FBF;
+  --text:#F2EDE4;--text2:#9A8F7E;--text3:#5A5248;
+  --shadow:rgba(0,0,0,0.4);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Cabinet Grotesk',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* HEADER */
+.app-header{background:linear-gradient(135deg,var(--surface) 0%,var(--bg) 100%);border-bottom:1px solid var(--border);padding:1rem 1.25rem 0;position:sticky;top:0;z-index:50;}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;}
+.app-title{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:900;letter-spacing:-0.5px;}
+.app-title span{color:var(--orange);}
+.header-pills{display:flex;gap:0.4rem;align-items:center;}
+.h-pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:0.2rem 0.6rem;font-size:0.62rem;font-weight:700;color:var(--text2);cursor:pointer;transition:all 0.2s;}
+.h-pill.online{color:var(--green);border-color:rgba(90,158,111,0.3);}
+.h-pill.offline{color:var(--red);border-color:rgba(217,95,75,0.3);}
+
+/* NAV */
+nav{display:flex;overflow-x:auto;scrollbar-width:none;border-top:1px solid var(--border);}
+nav::-webkit-scrollbar{display:none;}
+.nav-btn{flex:1;min-width:52px;padding:0.6rem 0.25rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-family:'Cabinet Grotesk',sans-serif;font-size:0.58rem;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;cursor:pointer;transition:all 0.2s;white-space:nowrap;display:flex;flex-direction:column;align-items:center;gap:0.12rem;}
+.nav-btn .ni{font-size:0.95rem;}
+.nav-btn.active{color:var(--orange);border-bottom-color:var(--orange);}
+
+/* VIEWS */
+.view{display:none;padding:1rem 1.1rem calc(5rem + var(--safe-bottom));max-width:680px;margin:0 auto;}
+.view.active{display:block;animation:fadeUp 0.25s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARDS & SECTIONS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+.sec{font-family:'Fraunces',serif;font-size:1rem;font-weight:700;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem;}
+.sec::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* TAGS */
+.tag{display:inline-block;font-size:0.6rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:20px;letter-spacing:0.4px;}
+.tag.time{background:rgba(212,168,73,0.15);color:var(--gold);}
+.tag.cat{background:rgba(74,143,191,0.15);color:var(--blue);}
+.tag.kcal{background:rgba(90,158,111,0.15);color:var(--green);}
+.tag.kids{background:rgba(240,145,58,0.15);color:var(--orange);}
+.tag.veg{background:rgba(90,158,111,0.2);color:var(--green);}
+.tag.actifry{background:rgba(217,95,75,0.15);color:var(--red);}
+.tag.fav{background:rgba(212,168,73,0.2);color:var(--gold);}
+.tag.cooked{background:rgba(90,158,111,0.2);color:var(--green);}
+
+/* ══ HOY ══ */
+.today-hero{background:linear-gradient(135deg,var(--surface2),var(--surface));border:1px solid var(--border);border-radius:20px;padding:1.5rem;margin-bottom:1rem;position:relative;overflow:hidden;}
+.today-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 85% 15%,rgba(240,145,58,0.2) 0%,transparent 55%);pointer-events:none;}
+.today-hero h2{font-family:'Fraunces',serif;font-size:1.6rem;font-weight:900;line-height:1.1;position:relative;}
+.today-hero .sub{font-size:0.8rem;color:var(--text2);margin-top:0.35rem;position:relative;}
+.today-big-emoji{font-size:3.5rem;position:absolute;right:1.1rem;top:50%;transform:translateY(-50%);opacity:0.65;}
+
+.today-actions{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:1rem;}
+.action-btn{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:0.9rem;cursor:pointer;transition:all 0.2s;text-align:left;display:flex;flex-direction:column;gap:0.25rem;}
+.action-btn:hover,.action-btn:active{border-color:var(--orange);background:var(--surface2);}
+.action-btn .ab-icon{font-size:1.4rem;}
+.action-btn .ab-title{font-size:0.8rem;font-weight:700;color:var(--text);}
+.action-btn .ab-sub{font-size:0.68rem;color:var(--text2);}
+.action-btn.primary{background:var(--orange);border-color:var(--orange);}
+.action-btn.primary .ab-title,.action-btn.primary .ab-sub{color:var(--bg);}
+
+.today-recipe-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+.cook-now-btn{display:block;width:100%;padding:0.75rem;background:var(--orange);color:var(--bg);border:none;border-radius:10px;font-family:'Cabinet Grotesk',sans-serif;font-size:0.88rem;font-weight:800;cursor:pointer;transition:all 0.2s;}
+.cook-now-btn:hover{background:var(--orange2);}
+
+/* ══ MENÚ ══ */
+.ai-banner{background:linear-gradient(135deg,#1a1f2e,#0f1520);border:1px solid rgba(74,143,191,0.3);border-radius:16px;padding:1rem 1.1rem;margin-bottom:1rem;display:flex;align-items:center;gap:0.85rem;}
+.ai-icon{font-size:1.8rem;flex-shrink:0;}
+.ai-banner h3{font-size:0.85rem;font-weight:700;color:#7DB8E8;}
+.ai-banner p{font-size:0.7rem;color:var(--text2);margin-top:0.1rem;}
+.ai-gen-btn{flex-shrink:0;background:var(--blue);color:white;border:none;border-radius:10px;padding:0.5rem 0.85rem;font-family:'Cabinet Grotesk',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.ai-gen-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.ai-loading{display:none;background:var(--surface);border:1px solid rgba(74,143,191,0.3);border-radius:14px;padding:1rem;text-align:center;margin-bottom:0.75rem;}
+.ai-loading.show{display:block;}
+.ai-spinner{font-size:1.8rem;animation:spin 1s linear infinite;display:inline-block;}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+.week-list{display:flex;flex-direction:column;gap:0.55rem;}
+.day-row{background:var(--surface);border:1px solid var(--border);border-radius:13px;display:flex;align-items:center;gap:0.65rem;padding:0.75rem;transition:border-color 0.2s;}
+.day-pill{background:var(--surface2);border-radius:8px;padding:0.35rem 0.45rem;text-align:center;flex-shrink:0;min-width:38px;}
+.day-pill .dpl{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:900;color:var(--orange);display:block;}
+.day-pill .dpd{font-size:0.52rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;}
+.day-emoji{width:44px;height:44px;border-radius:9px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;overflow:hidden;position:relative;}
+.day-emoji img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
+.day-info{flex:1;min-width:0;}
+.day-info h3{font-size:0.82rem;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.day-info .di-meta{font-size:0.67rem;color:var(--text2);margin-top:0.1rem;display:flex;gap:0.5rem;align-items:center;}
+.day-btns{display:flex;gap:0.3rem;flex-shrink:0;}
+.btn-sm{padding:0.28rem 0.55rem;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Cabinet Grotesk',sans-serif;font-size:0.62rem;font-weight:700;cursor:pointer;transition:all 0.18s;}
+.btn-sm:hover{border-color:var(--orange);color:var(--orange);}
+.btn-sm.cook{background:var(--orange);border-color:var(--orange);color:var(--bg);}
+
+/* ══ BIBLIOTECA ══ */
+.filter-scroll{display:flex;gap:0.4rem;overflow-x:auto;scrollbar-width:none;padding-bottom:0.5rem;margin-bottom:0.85rem;}
+.filter-scroll::-webkit-scrollbar{display:none;}
+.filt-btn{flex-shrink:0;padding:0.38rem 0.8rem;border-radius:20px;border:1px solid var(--border);background:var(--surface);font-size:0.7rem;font-weight:700;cursor:pointer;font-family:'Cabinet Grotesk',sans-serif;color:var(--text2);transition:all 0.18s;}
+.filt-btn.active{background:var(--orange);border-color:var(--orange);color:var(--bg);}
+
+.lib-grid{display:flex;flex-direction:column;gap:0.5rem;}
+.lib-card{background:var(--surface);border:1px solid var(--border);border-radius:13px;display:flex;align-items:center;gap:0.7rem;padding:0.7rem;cursor:pointer;transition:all 0.18s;}
+.lib-card:hover,.lib-card:active{border-color:var(--orange);}
+.lib-thumb{width:52px;height:52px;border-radius:9px;overflow:hidden;flex-shrink:0;position:relative;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.7rem;}
+.lib-thumb img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
+.lib-info{flex:1;min-width:0;}
+.lib-info h3{font-size:0.85rem;font-weight:700;line-height:1.2;}
+.lib-info p{font-size:0.7rem;color:var(--text2);margin-top:0.08rem;}
+.lib-tags{display:flex;gap:0.28rem;flex-wrap:wrap;margin-top:0.3rem;}
+.lib-fav-btn{background:none;border:none;font-size:1.1rem;cursor:pointer;flex-shrink:0;padding:0.2rem;transition:transform 0.2s;}
+.lib-fav-btn:active{transform:scale(1.4);}
+
+/* ══ RECETA DETALLE ══ */
+.recipe-hero{position:relative;height:200px;border-radius:16px;overflow:hidden;margin-bottom:1rem;background:var(--surface2);}
+.recipe-hero img{width:100%;height:100%;object-fit:cover;display:block;}
+.recipe-hero-emoji-bg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:5.5rem;}
+.recipe-hero-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(10,8,5,0.96) 0%,rgba(10,8,5,0.3) 60%,transparent 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:1.1rem;}
+.recipe-hero-overlay h2{font-family:'Fraunces',serif;font-size:1.35rem;font-weight:900;line-height:1.15;color:white;}
+.recipe-hero-meta{display:flex;gap:0.45rem;flex-wrap:wrap;margin-top:0.35rem;}
+
+.back-pill{display:inline-flex;align-items:center;gap:0.3rem;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:0.35rem 0.8rem;font-size:0.72rem;font-weight:700;color:white;cursor:pointer;margin-bottom:0.7rem;font-family:'Cabinet Grotesk',sans-serif;transition:all 0.18s;}
+
+.nutr-bar{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:0.9rem;margin-bottom:0.8rem;}
+.nutr-bar h4{font-size:0.7rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.6rem;}
+.nutr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0.4rem;}
+.nutr-item{text-align:center;}
+.nutr-val{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700;color:var(--orange);}
+.nutr-label{font-size:0.58rem;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.3px;margin-top:0.08rem;}
+
+/* History stars */
+.rating-row{display:flex;gap:0.3rem;align-items:center;margin-top:0.5rem;}
+.star-btn{font-size:1.3rem;cursor:pointer;transition:transform 0.15s;background:none;border:none;}
+.star-btn:active{transform:scale(1.3);}
+.cooked-count{font-size:0.7rem;color:var(--text3);font-weight:600;}
+
+.assign-row{display:flex;gap:0.5rem;margin-bottom:0.8rem;}
+.assign-btn-full{flex:1;background:var(--orange);color:var(--bg);border:none;border-radius:10px;padding:0.65rem;font-family:'Cabinet Grotesk',sans-serif;font-size:0.82rem;font-weight:800;cursor:pointer;transition:all 0.2s;}
+.assign-btn-full:hover{background:var(--orange2);}
+.cook-guided-btn{flex:1;background:var(--surface2);border:1px solid var(--green);color:var(--green);border-radius:10px;padding:0.65rem;font-family:'Cabinet Grotesk',sans-serif;font-size:0.82rem;font-weight:800;cursor:pointer;transition:all 0.2s;}
+
+.ing-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;margin-bottom:0.8rem;}
+.ing-item{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:0.48rem 0.68rem;display:flex;align-items:center;gap:0.38rem;font-size:0.76rem;}
+.ing-qty{font-weight:800;color:var(--orange);min-width:38px;font-size:0.7rem;}
+
+.steps-list{display:flex;flex-direction:column;gap:0.48rem;margin-bottom:0.8rem;}
+.step-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:0.8rem;display:flex;gap:0.7rem;align-items:flex-start;}
+.step-num-badge{background:var(--orange);color:var(--bg);font-weight:900;font-size:0.72rem;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Fraunces',serif;}
+.step-body{flex:1;}
+.step-title{font-size:0.78rem;font-weight:700;color:var(--orange);margin-bottom:0.18rem;}
+.step-text{font-size:0.78rem;line-height:1.55;color:var(--text2);}
+.step-text strong{color:var(--text);}
+.step-timer-badge{margin-top:0.4rem;font-size:0.68rem;color:var(--gold);font-weight:700;}
+
+.tip-card{background:linear-gradient(135deg,rgba(212,168,73,0.08),rgba(212,168,73,0.03));border:1px solid rgba(212,168,73,0.2);border-radius:11px;padding:0.85rem;margin-bottom:0.8rem;}
+.tip-head{font-size:0.72rem;font-weight:700;color:var(--gold);margin-bottom:0.28rem;}
+.tip-body{font-size:0.76rem;line-height:1.55;color:var(--text2);}
+
+/* ══ COCINA GUIADA ══ */
+.guided-header{background:linear-gradient(135deg,#0d1f0f,#0a1a0c);border:1px solid rgba(90,158,111,0.3);border-radius:16px;padding:1.2rem;margin-bottom:1rem;}
+.guided-header h2{font-family:'Fraunces',serif;font-size:1.25rem;font-weight:900;}
+.guided-header .gh-sub{font-size:0.76rem;color:var(--text2);margin-top:0.2rem;}
+.prog-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.8rem;margin-bottom:0.8rem;}
+.prog-label{display:flex;justify-content:space-between;font-size:0.68rem;color:var(--text2);font-weight:600;margin-bottom:0.4rem;}
+.prog-bar-bg{background:var(--surface2);border-radius:20px;height:6px;overflow:hidden;}
+.prog-bar-fill{background:var(--green);height:100%;border-radius:20px;transition:width 0.4s ease;}
+
+.guided-step{background:var(--surface);border:1px solid rgba(90,158,111,0.25);border-radius:16px;padding:1.2rem;margin-bottom:0.8rem;}
+.gs-num{font-size:0.68rem;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.3rem;}
+.gs-title{font-family:'Fraunces',serif;font-size:1.1rem;font-weight:700;margin-bottom:0.45rem;}
+.gs-text{font-size:0.83rem;line-height:1.6;color:var(--text2);}
+.gs-text strong{color:var(--text);}
+
+.timer-block{background:var(--surface2);border:1px solid var(--border);border-radius:13px;padding:1rem;text-align:center;margin-top:0.8rem;}
+.timer-display{font-family:'Fraunces',serif;font-size:2.8rem;font-weight:900;color:var(--orange);line-height:1;letter-spacing:-1px;}
+.timer-display.warning{color:var(--red);}
+.timer-display.done{color:var(--green);}
+.timer-label{font-size:0.68rem;color:var(--text2);margin-top:0.22rem;font-weight:600;}
+.timer-btns{display:flex;gap:0.45rem;justify-content:center;margin-top:0.65rem;}
+.timer-btn{padding:0.45rem 1rem;border-radius:8px;border:none;font-family:'Cabinet Grotesk',sans-serif;font-size:0.76rem;font-weight:700;cursor:pointer;transition:all 0.2s;}
+.timer-btn.start{background:var(--orange);color:var(--bg);}
+.timer-btn.reset{background:var(--surface);border:1px solid var(--border);color:var(--text2);}
+
+.guided-nav{display:flex;gap:0.55rem;margin-bottom:0.8rem;}
+.gnav-btn{flex:1;padding:0.72rem;border-radius:11px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:'Cabinet Grotesk',sans-serif;font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.2s;}
+.gnav-btn:disabled{opacity:0.3;cursor:not-allowed;}
+.gnav-btn.next{background:var(--green);border-color:var(--green);color:white;}
+.gnav-btn.finish{background:var(--gold);border-color:var(--gold);color:var(--bg);}
+
+.guided-ingredients{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:0.9rem;margin-bottom:0.8rem;}
+.guided-ingredients h4{font-size:0.7rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.55rem;}
+
+/* ══ HISTORIAL / FAVORITOS ══ */
+.hist-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem;margin-bottom:1rem;}
+.hist-stat{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:0.85rem;text-align:center;}
+.hist-stat .hs-val{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:900;color:var(--orange);}
+.hist-stat .hs-label{font-size:0.62rem;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-top:0.1rem;}
+
+.hist-item{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:0.75rem;display:flex;align-items:center;gap:0.65rem;margin-bottom:0.45rem;}
+.hist-emoji{font-size:1.6rem;flex-shrink:0;}
+.hist-info{flex:1;min-width:0;}
+.hist-info h3{font-size:0.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hist-info p{font-size:0.68rem;color:var(--text2);margin-top:0.08rem;}
+.hist-stars{font-size:0.75rem;flex-shrink:0;}
+
+/* ══ NUTRICIÓN ══ */
+.nutr-week{display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;}
+.nutr-row{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:0.75rem;display:flex;align-items:center;gap:0.65rem;}
+.nutr-day{font-size:0.68rem;font-weight:700;color:var(--text3);min-width:26px;text-align:center;}
+.nutr-name{flex:1;font-size:0.78rem;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nutr-bar-mini{width:60px;flex-shrink:0;}
+.nutr-kcal{font-family:'Fraunces',serif;font-size:0.95rem;font-weight:700;min-width:36px;text-align:right;flex-shrink:0;}
+.nutr-summary{background:linear-gradient(135deg,var(--surface2),var(--surface));border:1px solid var(--border);border-radius:13px;padding:1rem;display:grid;grid-template-columns:repeat(3,1fr);gap:0.65rem;text-align:center;margin-bottom:1rem;}
+.ns-val{font-family:'Fraunces',serif;font-size:1.25rem;font-weight:900;color:var(--gold);}
+.ns-label{font-size:0.62rem;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-top:0.08rem;}
+
+/* ══ COMPRA ══ */
+.shop-header{background:linear-gradient(135deg,#0d1a10,#0a150c);border:1px solid rgba(90,158,111,0.25);border-radius:16px;padding:1.1rem;margin-bottom:1rem;}
+.shop-header h2{font-family:'Fraunces',serif;font-size:1.2rem;font-weight:900;}
+.shop-header p{font-size:0.74rem;color:var(--text2);margin-top:0.18rem;}
+.shop-stats{display:flex;gap:0.65rem;margin-top:0.55rem;flex-wrap:wrap;}
+.shop-stat{font-size:0.7rem;font-weight:700;color:var(--green);}
+
+.shop-actions{display:flex;gap:0.45rem;margin-bottom:0.85rem;flex-wrap:wrap;}
+.shop-act-btn{padding:0.55rem 0.85rem;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:'Cabinet Grotesk',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.shop-act-btn:hover{border-color:var(--orange);color:var(--orange);}
+.shop-act-btn.mercadona{background:rgba(0,99,65,0.15);border-color:rgba(0,99,65,0.4);color:#00c870;}
+.shop-act-btn.mercadona:hover{background:rgba(0,99,65,0.25);}
+.shop-act-btn.danger{border-color:rgba(217,95,75,0.4);color:var(--red);}
+
+.shop-section{margin-bottom:1.1rem;}
+.shop-sec-head{font-size:0.62rem;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--text3);padding:0.38rem 0;border-bottom:1px solid var(--border);margin-bottom:0.45rem;display:flex;align-items:center;justify-content:space-between;}
+.shop-sec-mercadona{font-size:0.58rem;background:rgba(0,99,65,0.15);color:#00c870;border:1px solid rgba(0,99,65,0.3);border-radius:20px;padding:0.1rem 0.45rem;cursor:pointer;font-weight:700;font-family:'Cabinet Grotesk',sans-serif;}
+.shop-items{display:flex;flex-direction:column;gap:0.32rem;}
+.shop-item{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:0.5rem 0.8rem;display:flex;align-items:center;gap:0.55rem;cursor:pointer;transition:all 0.18s;}
+.shop-item.checked{opacity:0.35;}
+.shop-chk{width:17px;height:17px;border-radius:50%;border:1.5px solid var(--text3);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.18s;font-size:0.58rem;color:transparent;}
+.shop-item.checked .shop-chk{background:var(--green);border-color:var(--green);color:white;}
+.shop-item-name{flex:1;font-size:0.78rem;}
+.shop-item.checked .shop-item-name{text-decoration:line-through;}
+.shop-item-right{text-align:right;flex-shrink:0;}
+.shop-item-qty{font-size:0.68rem;color:var(--text3);font-weight:700;}
+.shop-item-days{font-size:0.58rem;color:var(--text3);}
+.shop-merc-btn{background:none;border:none;font-size:0.75rem;cursor:pointer;padding:0.15rem;opacity:0.6;transition:opacity 0.18s;}
+.shop-merc-btn:hover{opacity:1;}
+
+/* ══ MODALS ══ */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,8,5,0.82);backdrop-filter:blur(4px);z-index:100;align-items:flex-end;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:1.5rem 1.2rem calc(2rem + var(--safe-bottom));width:100%;max-width:480px;animation:slideUp 0.28s ease;max-height:82vh;overflow-y:auto;}
+@keyframes slideUp{from{transform:translateY(50px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-title{font-family:'Fraunces',serif;font-size:1.1rem;font-weight:700;margin-bottom:1rem;}
+.modal-day-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.45rem;}
+.modal-day-btn{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:0.6rem 0.7rem;cursor:pointer;transition:all 0.18s;text-align:left;}
+.modal-day-btn:hover{border-color:var(--orange);}
+.mdb-name{font-size:0.8rem;font-weight:700;color:var(--text);display:block;}
+.mdb-cur{font-size:0.62rem;color:var(--text3);display:block;margin-top:0.12rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.modal-cancel{margin-top:0.8rem;width:100%;padding:0.62rem;background:none;border:1px solid var(--border);border-radius:10px;color:var(--text2);font-family:'Cabinet Grotesk',sans-serif;font-size:0.8rem;font-weight:700;cursor:pointer;}
+
+/* PWA Install Banner */
+.install-banner{background:linear-gradient(135deg,#1a1520,#110e18);border:1px solid rgba(139,111,191,0.3);border-radius:14px;padding:1rem;margin-bottom:1rem;display:flex;align-items:center;gap:0.85rem;}
+.install-banner .ib-icon{font-size:1.8rem;flex-shrink:0;}
+.install-banner h3{font-size:0.82rem;font-weight:700;color:#C4A9F0;}
+.install-banner p{font-size:0.68rem;color:var(--text2);margin-top:0.1rem;}
+.install-btn{flex-shrink:0;background:var(--purple);color:white;border:none;border-radius:9px;padding:0.48rem 0.85rem;font-family:'Cabinet Grotesk',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;}
+.install-dismiss{background:none;border:none;color:var(--text3);font-size:1rem;cursor:pointer;flex-shrink:0;}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(5rem + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:0.55rem 1.1rem;font-size:0.78rem;font-weight:600;opacity:0;transition:all 0.3s;pointer-events:none;z-index:200;white-space:nowrap;box-shadow:0 8px 24px var(--shadow);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Offline indicator */
+.offline-bar{display:none;position:fixed;top:0;left:0;right:0;background:var(--red);color:white;text-align:center;font-size:0.72rem;font-weight:700;padding:0.35rem;z-index:200;}
+.offline-bar.show{display:block;}
+</style>
+</head>
+<body>
+
+<div class="offline-bar" id="offline-bar">📵 Sin conexión — funcionando en modo offline</div>
+
+<div class="app-header">
+  <div class="header-top">
+    <div class="app-title">Chef en <span>Casa</span> 🍳</div>
+    <div class="header-pills">
+      <div class="h-pill online" id="conn-pill">● online</div>
+      <div class="h-pill" onclick="showView('historial')" style="cursor:pointer;">📖 Historial</div>
+    </div>
+  </div>
+  <nav>
+    <button class="nav-btn active" onclick="showView('hoy')"><span class="ni">🎯</span>Hoy</button>
+    <button class="nav-btn" onclick="showView('menu')"><span class="ni">📅</span>Menú</button>
+    <button class="nav-btn" onclick="showView('biblioteca')"><span class="ni">📚</span>Recetas</button>
+    <button class="nav-btn" onclick="showView('cocinar')"><span class="ni">🍳</span>Cocinar</button>
+    <button class="nav-btn" onclick="showView('nutricion')"><span class="ni">📊</span>Nutrición</button>
+    <button class="nav-btn" onclick="showView('compra')"><span class="ni">🛒</span>Compra</button>
+  </nav>
+</div>
+
+<div class="view active" id="view-hoy"></div>
+<div class="view" id="view-menu"></div>
+<div class="view" id="view-biblioteca"></div>
+<div class="view" id="view-receta"></div>
+<div class="view" id="view-cocinar"></div>
+<div class="view" id="view-historial"></div>
+<div class="view" id="view-nutricion"></div>
+<div class="view" id="view-compra"></div>
+
+<div class="modal-overlay" id="modal-assign" onclick="closeAssignModal(event)">
+  <div class="modal-box">
+    <div class="modal-title">📅 ¿En qué día poner esta receta?</div>
+    <div class="modal-day-grid" id="modal-day-grid"></div>
+    <button class="modal-cancel" onclick="closeAssignModal()">Cancelar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// RECIPES DATABASE
+// ══════════════════════════════════════════════════════════
+const RECIPES=[
+  {id:1,emoji:"🍝",name:"Pasta con atún y aceitunas",desc:"Mediterránea clásica en 18 min",time:"18 min",kcal:480,prot:28,carbs:62,fat:14,cat:"Pasta",tags:["kids"],
+   photo:"https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=500&q=75",
+   ingredients:[{qty:"300g",n:"Espirales o macarrones"},{qty:"2 latas",n:"Atún en aceite"},{qty:"1 bote",n:"Tomate frito"},{qty:"1 puñado",n:"Aceitunas negras"},{qty:"1 diente",n:"Ajo"},{qty:"Al gusto",n:"Orégano y sal"},{qty:"Opcional",n:"Parmesano rallado"}],
+   steps:[{t:"Cocer la pasta",s:"Agua con sal a hervir. Cuece <strong>8-10 min</strong>. Reserva un vaso del agua antes de escurrir.",timer:600},{t:"Sofrito",s:"Sofríe el <strong>ajo picado 1 min</strong>. Añade el tomate frito y cocina <strong>2 min</strong>.",timer:180},{t:"Relleno",s:"Incorpora el <strong>atún escurrido</strong> y las aceitunas. Mezcla 1 min. Añade orégano.",timer:60},{t:"Servir",s:"Mezcla pasta con salsa. Si está espesa añade agua de cocción. Parmesano por encima."}],
+   tip:"Guarda el agua de cocción — es el secreto para ajustar la salsa.",mercadona:["atún","aceitunas","pasta","tomate frito"]},
+
+  {id:2,emoji:"🍜",name:"Fideos con gambas estilo wok",desc:"Asiático express en 15 min",time:"15 min",kcal:420,prot:24,carbs:58,fat:10,cat:"Pasta",tags:["world"],
+   photo:"https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=75",
+   ingredients:[{qty:"200g",n:"Noodles chinos"},{qty:"200g",n:"Gambas peladas"},{qty:"1",n:"Zanahoria en juliana"},{qty:"½",n:"Pimiento rojo"},{qty:"2 cdas",n:"Salsa de soja"},{qty:"1 cda",n:"Aceite de sésamo"},{qty:"1 diente",n:"Ajo"}],
+   steps:[{t:"Fideos",s:"Remoja en agua caliente <strong>5 min</strong>. Escurre.",timer:300},{t:"Saltear verduras",s:"Wok a fuego máximo. Ajo + verduras <strong>3 min</strong>.",timer:180},{t:"Gambas",s:"Añade gambas <strong>2 min</strong> hasta que cambien de color.",timer:120},{t:"Unir",s:"Fideos + soja + sésamo. Saltea <strong>2 min</strong> más.",timer:120}],
+   tip:"Fuego muy alto y no mover demasiado — deja que se dore antes de mezclar.",mercadona:["noodles","gambas","soja","sésamo"]},
+
+  {id:3,emoji:"🍚",name:"Arroz frito con huevo estilo chino",desc:"El arroz del día anterior, reinventado",time:"15 min",kcal:390,prot:14,carbs:60,fat:12,cat:"Arroz",tags:["world","kids"],
+   photo:"https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=75",
+   ingredients:[{qty:"250g",n:"Arroz cocido del día anterior"},{qty:"3",n:"Huevos"},{qty:"100g",n:"Guisantes congelados"},{qty:"2",n:"Zanahorias en dados"},{qty:"3 cdas",n:"Salsa de soja"},{qty:"1 cda",n:"Aceite de sésamo"},{qty:"1",n:"Cebolla tierna"}],
+   steps:[{t:"Huevos revueltos",s:"Bate y cuece revueltos <strong>2 min</strong>. Reserva.",timer:120},{t:"Verduras",s:"Saltea zanahoria + cebolla <strong>3 min</strong>, guisantes 1 min más.",timer:240},{t:"Arroz",s:"Añade el arroz frío. Saltea a fuego alto <strong>3 min</strong> sin parar.",timer:180},{t:"Acabar",s:"Incorpora huevos, soja y sésamo. Mezcla y sirve."}],
+   tip:"El arroz de ayer es mejor — más seco y no se pega. Nunca uses arroz recién hecho.",mercadona:["arroz","guisantes","soja","sésamo"]},
+
+  {id:4,emoji:"🥘",name:"Paella rápida de marisco",desc:"Sabor a paella sin complicaciones",time:"20 min",kcal:520,prot:26,carbs:72,fat:12,cat:"Arroz",tags:["pescado"],
+   photo:"https://images.unsplash.com/photo-1534080564583-6be75777b70a?w=500&q=75",
+   ingredients:[{qty:"250g",n:"Arroz redondo"},{qty:"300g",n:"Mejillones congelados"},{qty:"200g",n:"Gambas peladas"},{qty:"1 sobre",n:"Caldo de pescado concentrado"},{qty:"½",n:"Pimiento rojo"},{qty:"1 cda",n:"Pimentón dulce"},{qty:"Unas hebras",n:"Azafrán o colorante"}],
+   steps:[{t:"Sofrito",s:"Sofríe pimiento <strong>3 min</strong>. Añade pimentón 30 seg fuera del fuego.",timer:210},{t:"Arroz",s:"Añade arroz, mezcla con sofrito <strong>1 min</strong>.",timer:60},{t:"Caldo",s:"500ml caldo caliente con azafrán. <strong>10 min</strong> sin remover.",timer:600},{t:"Marisco",s:"Añade marisco encima. <strong>5 min</strong> más. Reposa 2 min tapado.",timer:420}],
+   tip:"No remuevas el arroz una vez añadido el caldo — así se forma el socarrat.",mercadona:["arroz","mejillones","gambas","pimentón"]},
+
+  {id:5,emoji:"🍝",name:"Pasta carbonara auténtica",desc:"La auténtica romana, sin nata",time:"18 min",kcal:560,prot:26,carbs:64,fat:22,cat:"Pasta",tags:[],
+   photo:"https://images.unsplash.com/photo-1608756687911-aa1599ab3bd9?w=500&q=75",
+   ingredients:[{qty:"300g",n:"Espaguetis"},{qty:"150g",n:"Bacon en taquitos"},{qty:"3",n:"Yemas + 1 huevo entero"},{qty:"60g",n:"Parmesano rallado"},{qty:"Abundante",n:"Pimienta negra molida"},{qty:"Sal",n:"Para la pasta"}],
+   steps:[{t:"Pasta",s:"Cuece al dente en agua bien salada. Reserva <strong>1 vaso del agua</strong>.",timer:600},{t:"Bacon",s:"En sartén sin aceite, dora el bacon <strong>4 min</strong>.",timer:240},{t:"Salsa",s:"Bate yemas + parmesano + pimienta. Añade 2-3 cdas agua de pasta para templar."},
+          {t:"Unir",s:"Pasta caliente <strong>FUERA DEL FUEGO</strong> + bacon + crema de huevo. Añade agua hasta conseguir salsa cremosa."}],
+   tip:"NUNCA al fuego directo con el huevo. El calor residual de la pasta lo cuaja perfectamente.",mercadona:["pasta","bacon","huevos","parmesano"]},
+
+  {id:6,emoji:"🍝",name:"Pasta al pesto con cherry",desc:"Verde, fresca, lista en 12 min",time:"12 min",kcal:440,prot:14,carbs:66,fat:16,cat:"Pasta",tags:["veg","kids"],
+   photo:"https://images.unsplash.com/photo-1546549032-9571cd6b27df?w=500&q=75",
+   ingredients:[{qty:"300g",n:"Penne o fusilli"},{qty:"1 tarro",n:"Pesto verde Mercadona"},{qty:"200g",n:"Tomates cherry"},{qty:"50g",n:"Parmesano rallado"},{qty:"Opcional",n:"Piñones tostados"}],
+   steps:[{t:"Pasta",s:"Cuece según instrucciones. Escurre guardando agua.",timer:600},{t:"Cherry",s:"Parte los cherry por la mitad."},{t:"Mezcla",s:"Mezcla pasta (no seca del todo) con pesto directamente en el cazo."},{t:"Servir",s:"Cherry + parmesano + piñones por encima."}],
+   tip:"No calientes el pesto en la sartén — pierde color verde y sabor fresco.",mercadona:["pasta","pesto","cherry","parmesano"]},
+
+  {id:7,emoji:"🐟",name:"Salmón al limón con arroz",desc:"Ligero, sano, en 20 min",time:"20 min",kcal:520,prot:38,carbs:44,fat:18,cat:"Pescado",tags:[],
+   photo:"https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&q=75",
+   ingredients:[{qty:"3 lomos",n:"Salmón fresco"},{qty:"200g",n:"Arroz basmati"},{qty:"300g",n:"Brócoli"},{qty:"1",n:"Limón"},{qty:"2 dientes",n:"Ajo"},{qty:"Nuez",n:"Mantequilla"},{qty:"Eneldo, sal, pimienta",n:"Al gusto"}],
+   steps:[{t:"Arroz al micro",s:"Arroz + doble agua + sal en tupper. Micro <strong>12 min tapado</strong>. Reposa 2 min.",timer:720},{t:"Brócoli",s:"En agua con sal <strong>5-6 min</strong> o micro 4 min tapado.",timer:360},{t:"Salmón",s:"Sartén muy caliente. <strong>3 min por lado</strong>. Al final: ajo + mantequilla + limón.",timer:360},{t:"Servir",s:"Arroz + brócoli + salmón. Riega con los jugos de la sartén."}],
+   tip:"El salmón está listo cuando el centro no es translúcido pero sigue jugoso.",mercadona:["salmón","arroz basmati","brócoli","limón"]},
+
+  {id:8,emoji:"🦐",name:"Gambas al ajillo",desc:"Tapa clásica convertida en cena",time:"10 min",kcal:320,prot:28,carbs:4,fat:22,cat:"Pescado",tags:["kids"],
+   photo:"https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=500&q=75",
+   ingredients:[{qty:"500g",n:"Gambas o langostinos pelados"},{qty:"5 dientes",n:"Ajo"},{qty:"1-2",n:"Guindillas (opcional)"},{qty:"100ml",n:"Aceite de oliva virgen"},{qty:"Perejil fresco",n:"Al gusto"},{qty:"Pan de barra",n:"Para mojar"}],
+   steps:[{t:"Aceite + ajo",s:"Cazuela de barro a fuego medio. Ajo en láminas + guindilla <strong>2 min</strong>.",timer:120},{t:"Gambas",s:"Sube el fuego. Gambas <strong>2-3 min</strong> hasta que cambien de color.",timer:150},{t:"Servir",s:"Sal + perejil picado. Sirve inmediatamente con pan para mojar."}],
+   tip:"Si el ajo se quema, empieza de nuevo. El aceite caliente pero no humeante.",mercadona:["gambas","ajo","perejil","pan"]},
+
+  {id:9,emoji:"🍔",name:"Hamburguesas + patatas ActiFry",desc:"Hamburguesería en casa",time:"20 min",kcal:680,prot:36,carbs:58,fat:28,cat:"Carne",tags:["kids","actifry"],
+   photo:"https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&q=75",
+   ingredients:[{qty:"500g",n:"Carne picada de ternera"},{qty:"3",n:"Panes de hamburguesa brioche"},{qty:"3 lonchas",n:"Queso cheddar"},{qty:"Lechuga, tomate",n:"Para el montaje"},{qty:"Ketchup y mayo",n:"Al gusto"},{qty:"500g",n:"Patatas congeladas"}],
+   steps:[{t:"Patatas ActiFry",s:"Patatas congeladas en ActiFry <strong>Modo 1, 20-22 min</strong>. Sin aceite si son prefritas.",timer:1320},{t:"Hamburguesas",s:"Carne + sal + pimienta + ajo en polvo. Forma 3 hamburguesas. Hendidura con el pulgar en el centro."},{t:"Cocinar",s:"Plancha muy caliente. <strong>3-4 min por lado</strong>. Último minuto: queso encima.",timer:480},{t:"Montar",s:"Tuesta los panes 1 min. Monta: pan → mayo → lechuga → tomate → hamburguesa → ketchup."}],
+   tip:"La hendidura con el pulgar evita que la hamburguesa se encoja y curve al cocinarse.",mercadona:["carne picada","pan hamburguesa","queso cheddar","patatas congeladas"]},
+
+  {id:10,emoji:"🍗",name:"Muslos de pollo ActiFry",desc:"Crujientes sin aceite",time:"22 min",kcal:480,prot:38,carbs:8,fat:22,cat:"Carne",tags:["actifry"],
+   photo:"https://images.unsplash.com/photo-1598103442097-8b74394b95c8?w=500&q=75",
+   ingredients:[{qty:"4-6",n:"Muslos de pollo"},{qty:"1 cda",n:"Aceite de oliva"},{qty:"Ajo en polvo, pimentón",n:"Hierbas provenzales"},{qty:"Sal y pimienta",n:"Al gusto"},{qty:"1 bolsa",n:"Mezclum de lechugas"},{qty:"Cherry",n:"Para la ensalada"}],
+   steps:[{t:"Marinar",s:"Aceite + especias. Unta bien los muslos. Reposa <strong>5 min</strong>.",timer:300},{t:"ActiFry",s:"<strong>Modo 6, 20-22 min</strong>. Sin la paleta giratoria.",timer:1320},{t:"Comprobar",s:"Al pinchar: jugo transparente = listo. Si rosado, 3 min más."},{t:"Ensalada",s:"Mezclum + cherry + aceite + sal + limón."}],
+   tip:"Saca el pollo de la nevera 15 min antes para que se cocine uniformemente.",mercadona:["pollo","pimentón","mezclum","cherry"]},
+
+  {id:11,emoji:"🍛",name:"Pollo al curry con leche de coco",desc:"Exótico y suave para toda la familia",time:"20 min",kcal:510,prot:36,carbs:46,fat:18,cat:"Carne",tags:["world"],
+   photo:"https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&q=75",
+   ingredients:[{qty:"600g",n:"Pechuga de pollo en tiras"},{qty:"1 lata",n:"Leche de coco"},{qty:"1 cda",n:"Curry en polvo suave"},{qty:"1",n:"Cebolla mediana"},{qty:"200g",n:"Arroz basmati"},{qty:"1 diente",n:"Ajo"},{qty:"Aceite y sal",n:"Al gusto"}],
+   steps:[{t:"Arroz al micro",s:"Arroz + doble agua en tupper. Micro <strong>12 min tapado</strong>. Reposa.",timer:720},{t:"Sofrito",s:"Sofríe cebolla + ajo en aceite <strong>4 min</strong>.",timer:240},{t:"Pollo",s:"Sube el fuego. Pollo salpimentado <strong>4-5 min</strong> removiendo.",timer:270},{t:"Curry y coco",s:"Añade curry, remueve <strong>1 min</strong>. Leche de coco. Cocina <strong>5 min</strong> suave.",timer:360}],
+   tip:"Curry Hacendado es suave. Adultos que quieran más picante: guindilla en sus platos.",mercadona:["pollo","leche de coco","curry","arroz basmati"]},
+
+  {id:12,emoji:"🌮",name:"Tacos de pollo con guacamole",desc:"Noche mexicana en familia",time:"20 min",kcal:490,prot:32,carbs:48,fat:18,cat:"Carne",tags:["world","kids"],
+   photo:"https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500&q=75",
+   ingredients:[{qty:"400g",n:"Pechuga de pollo en tiras"},{qty:"6",n:"Tortillas de trigo"},{qty:"2",n:"Aguacates maduros"},{qty:"1",n:"Lima o limón"},{qty:"Tomate y cebolla",n:"Para el guacamole"},{qty:"1 sobre",n:"Especias para fajitas"},{qty:"Crema agria",n:"Para servir"}],
+   steps:[{t:"Guacamole",s:"Aplasta aguacates. Añade lima, sal, tomate en daditos, cebolla. Mezcla."},{t:"Pollo",s:"Sartén caliente. Pollo + especias fajita <strong>5-6 min</strong> removiendo.",timer:360},{t:"Tortillas",s:"Micro 30 seg tapadas con papel húmedo.",timer:30},{t:"Montar",s:"¡Cada uno monta el suyo! Pollo, guacamole, crema."}],
+   tip:"El guacamole se oxida. Si sobra, pon el hueso encima y tapa con film pegado a la superficie.",mercadona:["pollo","tortillas","aguacate","especias fajita"]},
+
+  {id:13,emoji:"🥚",name:"Tortilla de patatas express",desc:"El truco de las patatas de bolsa",time:"15 min",kcal:380,prot:18,carbs:32,fat:20,cat:"Vegetariano",tags:["veg","kids"],
+   photo:"https://images.unsplash.com/photo-1518492104633-130d0cc84637?w=500&q=75",
+   ingredients:[{qty:"6",n:"Huevos frescos"},{qty:"150g",n:"Patatas fritas de bolsa lisas"},{qty:"½",n:"Cebolla (opcional)"},{qty:"Aceite y sal",n:"Para la sartén"},{qty:"1 bolsa",n:"Mezclum"},{qty:"2",n:"Tomates maduros"}],
+   steps:[{t:"Batir",s:"Bate 6 huevos con sal. Cebolla picada fina si quieres."},{t:"Patatas",s:"Incorpora patatas de bolsa directamente. Apriétalas un poco. Reposa <strong>3 min</strong>.",timer:180},{t:"Cuajar",s:"Sartén 22cm con aceite. <strong>3-4 min por lado</strong> a fuego medio. Da la vuelta con un plato.",timer:420},{t:"Ensalada",s:"Tomates en gajos + mezclum + aceite + sal + limón."}],
+   tip:"Las patatas de bolsa absorben el huevo quedando jugosas pero con textura.",mercadona:["huevos","patatas fritas bolsa","mezclum"]},
+
+  {id:14,emoji:"🍳",name:"Huevos rotos con jamón",desc:"El plato que nunca falla",time:"15 min",kcal:440,prot:24,carbs:36,fat:22,cat:"Vegetariano",tags:["kids"],
+   photo:"https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=500&q=75",
+   ingredients:[{qty:"6",n:"Huevos frescos"},{qty:"150g",n:"Jamón serrano en lonchas"},{qty:"500g",n:"Patatas congeladas"},{qty:"Aceite",n:"Al gusto"},{qty:"Sal",n:"Al gusto"}],
+   steps:[{t:"Patatas ActiFry",s:"ActiFry <strong>Modo 1, 20 min</strong>. O sartén con aceite abundante.",timer:1200},{t:"Jamón crujiente",s:"Sartén sin aceite. Lonchas de jamón <strong>1-2 min</strong> hasta crujientes. Reserva.",timer:90},{t:"Huevos fritos",s:"Aceite caliente. Fríe los huevos bañándolos con el aceite."},{t:"Romper y servir",s:"Patatas en el plato, jamón encima, huevos encima. <strong>Rompe los huevos</strong> con un tenedor al servir."}],
+   tip:"Tapa la sartén 30 seg al final — clara cuajada y yema líquida perfectas.",mercadona:["huevos","jamón serrano","patatas congeladas"]},
+
+  {id:15,emoji:"🥗",name:"Ensalada de garbanzos con feta",desc:"Proteica, sin cocinar, en 10 min",time:"10 min",kcal:320,prot:16,carbs:34,fat:14,cat:"Vegetariano",tags:["veg"],
+   photo:"https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&q=75",
+   ingredients:[{qty:"1 bote",n:"Garbanzos cocidos"},{qty:"150g",n:"Queso feta"},{qty:"200g",n:"Tomates cherry"},{qty:"½",n:"Pepino"},{qty:"¼",n:"Cebolla morada"},{qty:"Aceitunas negras",n:"Un puñado"},{qty:"Aceite, limón, orégano",n:"Para aliñar"}],
+   steps:[{t:"Enjuagar",s:"Escurre y enjuaga los garbanzos con agua fría."},{t:"Cortar",s:"Pepino en medias lunas, cherry por la mitad, cebolla en juliana."},{t:"Montar",s:"Mezcla todo. Feta desmoronado encima + aceitunas."},{t:"Aliñar",s:"Aceite + limón + sal + orégano. Reposa <strong>5 min</strong>.",timer:300}],
+   tip:"5 minutos de reposo son clave — los sabores se integran en los garbanzos.",mercadona:["garbanzos","queso feta","cherry","aceitunas"]},
+
+  {id:16,emoji:"🧆",name:"Shakshuka (huevos en tomate)",desc:"Oriente Medio en una sartén",time:"18 min",kcal:340,prot:18,carbs:26,fat:18,cat:"Vegetariano",tags:["veg","world"],
+   photo:"https://images.unsplash.com/photo-1590412200988-a436970781fa?w=500&q=75",
+   ingredients:[{qty:"6",n:"Huevos"},{qty:"1 bote",n:"Tomate triturado"},{qty:"1",n:"Pimiento rojo"},{qty:"1",n:"Cebolla"},{qty:"2 dientes",n:"Ajo"},{qty:"1 cda",n:"Comino + pimentón"},{qty:"Feta",n:"Para acabar"}],
+   steps:[{t:"Sofrito",s:"Cebolla + ajo + pimiento en aceite <strong>5 min</strong>.",timer:300},{t:"Salsa",s:"Comino + pimentón + tomate triturado. Cocina <strong>5-6 min</strong>.",timer:360},{t:"Huevos",s:"6 huecos en la salsa. Un huevo en cada uno. Tapa. <strong>4-5 min</strong>.",timer:270},{t:"Acabar",s:"Feta desmoronado encima. Sirve en la misma sartén con pan."}],
+   tip:"Yema un poco líquida = perfecto. 4 min con tapa es el punto ideal.",mercadona:["huevos","tomate triturado","pimiento","feta"]},
+
+  {id:17,emoji:"🍱",name:"Pollo teriyaki con arroz",desc:"Japonés rápido para toda la familia",time:"18 min",kcal:460,prot:34,carbs:54,fat:10,cat:"Carne",tags:["world","kids"],
+   photo:"https://images.unsplash.com/photo-1547592180-85f173990554?w=500&q=75",
+   ingredients:[{qty:"600g",n:"Pechuga de pollo en dados"},{qty:"200g",n:"Arroz basmati"},{qty:"3 cdas",n:"Salsa de soja"},{qty:"2 cdas",n:"Miel"},{qty:"1 cda",n:"Vinagre de arroz"},{qty:"1 diente",n:"Ajo picado"},{qty:"Sésamo",n:"Para decorar"}],
+   steps:[{t:"Arroz",s:"Tupper + doble agua. Micro <strong>12 min tapado</strong>.",timer:720},{t:"Salsa teriyaki",s:"Mezcla soja + miel + vinagre + ajo. Reserva."},{t:"Pollo",s:"Sartén caliente. Dados de pollo <strong>4-5 min</strong>.",timer:300},{t:"Glazar",s:"Vierte la salsa. Cocina <strong>2-3 min</strong> hasta que espese y caramelice.",timer:150}],
+   tip:"La salsa reduce rápido — no la dejes sin vigilar o el azúcar se quema.",mercadona:["pollo","soja","miel","vinagre arroz"]},
+
+  {id:18,emoji:"🍕",name:"Pizza casera con masa Mercadona",desc:"Viernes de pizza — ¡creatividad!",time:"20 min",kcal:580,prot:24,carbs:72,fat:20,cat:"Horneado",tags:["kids"],
+   photo:"https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&q=75",
+   ingredients:[{qty:"2 bases",n:"Masa pizza fresca (nevera)"},{qty:"1 bote",n:"Tomate triturado"},{qty:"200g",n:"Mozzarella rallada"},{qty:"100g",n:"Jamón york"},{qty:"1 lata",n:"Maíz dulce"},{qty:"½",n:"Pimiento rojo"},{qty:"Orégano y aceite",n:"Al gusto"}],
+   steps:[{t:"Horno",s:"Precalienta a <strong>220°C</strong>.",timer:600},{t:"Base",s:"Extiende masa en papel de hornear. Tomate dejando 1 cm de borde."},{t:"Toppings",s:"Mozzarella + ingredientes. ¡La niña elige los suyos!"},{t:"Hornear",s:"<strong>12-14 min</strong> hasta bordes dorados y queso burbujeante.",timer:840}],
+   tip:"Idea: dos bases — una mitad para la niña, otra para los adultos.",mercadona:["masa pizza","mozzarella","jamón york","maíz"]},
+
+  {id:19,emoji:"🥞",name:"Crêpes saladas y dulces",desc:"El domingo perfecto en familia",time:"20 min",kcal:420,prot:14,carbs:56,fat:16,cat:"Horneado",tags:["kids"],
+   photo:"https://images.unsplash.com/photo-1519676867240-f03562e64548?w=500&q=75",
+   ingredients:[{qty:"200g",n:"Harina de trigo"},{qty:"2",n:"Huevos"},{qty:"400ml",n:"Leche entera"},{qty:"30g",n:"Mantequilla"},{qty:"1 pellizco",n:"Sal"},{qty:"Nutella o mermelada",n:"Relleno dulce"},{qty:"Jamón york y queso",n:"Relleno salado"}],
+   steps:[{t:"Masa",s:"Harina + sal + huevos + leche poco a poco + mantequilla fundida. Reposa <strong>5 min</strong>.",timer:300},{t:"Primera crêpe",s:"Sartén 24cm con mantequilla caliente. Un cazo de masa, inclina para extender. <strong>1-2 min por lado</strong>.",timer:90},{t:"Cadena familiar",s:"¡Un cadena! Uno cocina, los demás rellenan. Primero saladas, luego dulces."},{t:"Presentar",s:"Dobla en triángulo. Azúcar glass sobre las dulces. ¡Foto obligatoria!"}],
+   tip:"La primera crêpe siempre sale mal — es la del cocinero. Es la tradición.",mercadona:["harina","leche","mantequilla","nutella"]},
+
+  {id:20,emoji:"🫘",name:"Lentejas guisadas express",desc:"Cuchara en 18 min con bote",time:"18 min",kcal:360,prot:20,carbs:52,fat:8,cat:"Vegetariano",tags:["veg"],
+   photo:"https://images.unsplash.com/photo-1547592180-85f173990554?w=500&q=75",
+   ingredients:[{qty:"2 botes",n:"Lentejas cocidas Hacendado"},{qty:"1",n:"Cebolla"},{qty:"2 dientes",n:"Ajo"},{qty:"1",n:"Zanahoria"},{qty:"1 cda",n:"Pimentón dulce"},{qty:"1 hoja",n:"Laurel"},{qty:"Aceite y sal",n:"Al gusto"}],
+   steps:[{t:"Sofrito",s:"Cebolla + ajo + zanahoria en dados con aceite <strong>6 min</strong>.",timer:360},{t:"Pimentón",s:"Añade pimentón. Remueve <strong>30 seg fuera del fuego</strong>.",timer:30},{t:"Lentejas",s:"Lentejas escurridas + laurel + 200ml agua. <strong>8 min</strong> a fuego medio.",timer:480},{t:"Rectificar",s:"Sal al gusto. Agua si espesas, fuego si líquidas."}],
+   tip:"Con bote el sofrito es la clave — que la cebolla quede dulce y tierna.",mercadona:["lentejas","cebolla","zanahoria","pimentón"]},
+
+  {id:21,emoji:"🐚",name:"Mejillones al vapor",desc:"Elegante, listo en 10 min",time:"10 min",kcal:260,prot:28,carbs:8,fat:6,cat:"Pescado",tags:[],
+   photo:"https://images.unsplash.com/photo-1534080564583-6be75777b70a?w=500&q=75",
+   ingredients:[{qty:"1 kg",n:"Mejillones frescos"},{qty:"1 vaso",n:"Vino blanco"},{qty:"2 dientes",n:"Ajo"},{qty:"Perejil fresco",n:"Al gusto"},{qty:"Pan",n:"Para mojar"}],
+   steps:[{t:"Limpiar",s:"Raspa las conchas y quita las barbas tirando hacia la punta."},{t:"Base",s:"Sofríe ajo 1 min. Añade vino, deja evaporar <strong>1 min</strong>.",timer:60},{t:"Vapor",s:"Añade mejillones. Tapa. <strong>4-5 min</strong> hasta que se abran.",timer:300},{t:"Servir",s:"Descarta los que no se abran. Perejil picado + el caldo + pan."}],
+   tip:"Mejillones frescos: consúmelos el mismo día. Los que no se abran: descártalos siempre.",mercadona:["mejillones","vino blanco","ajo","perejil"]},
+
+  {id:22,emoji:"🌮",name:"Burritos de ternera picada",desc:"Mexicano completo y fácil",time:"20 min",kcal:550,prot:32,carbs:58,fat:18,cat:"Carne",tags:["world","kids"],
+   photo:"https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=500&q=75",
+   ingredients:[{qty:"400g",n:"Carne picada de ternera"},{qty:"6",n:"Tortillas grandes de trigo"},{qty:"1 bote",n:"Alubias negras"},{qty:"100g",n:"Queso rallado"},{qty:"1 sobre",n:"Especias para fajitas"},{qty:"Tomate frito",n:"Para la carne"},{qty:"Lechuga y crema",n:"Para servir"}],
+   steps:[{t:"Carne",s:"Carne picada en sartén <strong>5 min</strong> rompiéndola. Añade especias fajita.",timer:300},{t:"Alubias",s:"Escurre alubias + 2 cdas tomate. Cocina <strong>3 min</strong>.",timer:180},{t:"Tortillas",s:"Micro 30 seg tapadas con papel húmedo.",timer:30},{t:"Montar",s:"Carne + alubias + queso + lechuga + crema. Enrolla apretando."}],
+   tip:"Enrolla apretando desde el principio — si queda suelto se deshace al comer.",mercadona:["carne picada","tortillas","alubias","especias fajita"]},
+
+  {id:23,emoji:"🍜",name:"Sopa ramen exprés",desc:"Reconfortante y sorprendente",time:"15 min",kcal:380,prot:18,carbs:52,fat:10,cat:"Pasta",tags:["world"],
+   photo:"https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=75",
+   ingredients:[{qty:"2 paquetes",n:"Noodles instantáneos"},{qty:"3",n:"Huevos"},{qty:"1 litro",n:"Caldo de pollo (tetrabrik)"},{qty:"2 cdas",n:"Salsa de soja"},{qty:"1 cda",n:"Miso (opcional)"},{qty:"Cebolla tierna",n:"Para decorar"}],
+   steps:[{t:"Caldo",s:"Caldo + soja + miso a ebullición suave.",timer:300},{t:"Huevos 6 min",s:"En agua hirviendo <strong>6-7 min</strong>. Pélalos y córtalos por la mitad.",timer:390},{t:"Noodles",s:"Cuece noodles <strong>2-3 min</strong> en el caldo.",timer:150},{t:"Montar",s:"Cuenco: caldo + noodles + medio huevo + cebolla tierna."}],
+   tip:"6 min = yema muy blanda, 7 min = más firme. El huevo es el alma del ramen.",mercadona:["noodles","caldo de pollo","soja","miso"]},
+
+  {id:24,emoji:"🥑",name:"Tostadas de aguacate con huevo poché",desc:"Brunch saludable para cenar",time:"12 min",kcal:350,prot:16,carbs:28,fat:20,cat:"Vegetariano",tags:["veg"],
+   photo:"https://images.unsplash.com/photo-1541519227354-08fa5d50c820?w=500&q=75",
+   ingredients:[{qty:"3 rebanadas",n:"Pan de molde grueso"},{qty:"2",n:"Aguacates maduros"},{qty:"3",n:"Huevos"},{qty:"1",n:"Limón"},{qty:"Sal, pimienta, cayena",n:"Al gusto"},{qty:"Semillas de chía",n:"Opcional"}],
+   steps:[{t:"Aguacate",s:"Aplasta con tenedor. Añade limón + sal + pimienta."},{t:"Huevo poché",s:"Agua casi hirviendo + 1 cda vinagre. Remolino. Huevo en el centro. <strong>3 min</strong>.",timer:180},{t:"Tostada",s:"Tuesta el pan. Unta el aguacate generosamente."},{t:"Montar",s:"Huevo poché encima. Sal en escamas + pimienta + cayena."}],
+   tip:"El vinagre cohesiona la clara. El remolino hace el huevo más redondo.",mercadona:["aguacate","huevos","pan molde"]},
+
+  {id:25,emoji:"🍲",name:"Crema de calabaza con jengibre",desc:"Reconfortante y elegante",time:"20 min",kcal:280,prot:6,carbs:38,fat:12,cat:"Vegetariano",tags:["veg"],
+   photo:"https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?w=500&q=75",
+   ingredients:[{qty:"800g",n:"Calabaza (o congelada)"},{qty:"1",n:"Cebolla"},{qty:"1 trozo",n:"Jengibre fresco"},{qty:"500ml",n:"Caldo de verduras"},{qty:"100ml",n:"Nata de cocinar"},{qty:"Aceite, sal, pimienta",n:"Al gusto"}],
+   steps:[{t:"Sofrito",s:"Cebolla + jengibre rallado en aceite <strong>4 min</strong>.",timer:240},{t:"Cocinar",s:"Calabaza + caldo. Hierve y cocina <strong>12 min</strong> hasta que esté tierna.",timer:720},{t:"Triturar",s:"Batidor de mano hasta crema suave. Ajusta de sal."},{t:"Acabar",s:"Añade nata. Sirve con hilo de aceite y semillas de calabaza."}],
+   tip:"Con calabaza congelada ve directo al caldo — ya está precocida.",mercadona:["calabaza","jengibre","caldo verduras","nata"]},
+
+  {id:26,emoji:"🐟",name:"Merluza al vapor con patatas",desc:"Sano, ligero, sin ensuciar",time:"18 min",kcal:340,prot:32,carbs:36,fat:8,cat:"Pescado",tags:[],
+   photo:"https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&q=75",
+   ingredients:[{qty:"3 lomos",n:"Merluza"},{qty:"400g",n:"Patatas medianas"},{qty:"2",n:"Zanahorias"},{qty:"Aceite de oliva",n:"Para aliñar"},{qty:"Sal y perejil",n:"Al gusto"},{qty:"1",n:"Limón"}],
+   steps:[{t:"Patatas",s:"Dados medianos en agua con sal <strong>10 min</strong>.",timer:600},{t:"Vapor",s:"Pescado en vaporera sobre el cazo los <strong>últimos 6-8 min</strong>. Tapa.",timer:420},{t:"Comprobar",s:"El pescado se desmiga fácilmente con tenedor = listo."},{t:"Aliñar",s:"Todo junto con aceite virgen + limón + perejil picado."}],
+   tip:"Sin vaporera: bolsa de cocción en micro con un chorrito de agua, 5-6 min.",mercadona:["merluza","patatas","zanahoria","limón"]},
+
+  {id:27,emoji:"🥬",name:"Salteado de tofu asiático",desc:"Proteína vegetal al estilo wok",time:"15 min",kcal:300,prot:20,carbs:22,fat:16,cat:"Vegetariano",tags:["veg","world"],
+   photo:"https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&q=75",
+   ingredients:[{qty:"400g",n:"Tofu firme"},{qty:"200g",n:"Brócoli en ramitos"},{qty:"1",n:"Zanahoria en juliana"},{qty:"3 cdas",n:"Salsa de soja"},{qty:"1 cda",n:"Aceite de sésamo"},{qty:"1 diente",n:"Ajo"},{qty:"Arroz",n:"Para acompañar"}],
+   steps:[{t:"Tofu dorado",s:"Dados de tofu bien secos. Sartén muy caliente. <strong>3-4 min por lado SIN moverlo</strong>.",timer:480},{t:"Verduras",s:"Ajo + brócoli + zanahoria. Saltea <strong>4 min</strong>.",timer:240},{t:"Salsa",s:"Soja + sésamo. Mezcla todo <strong>1 min</strong>.",timer:60},{t:"Servir",s:"Sobre arroz blanco."}],
+   tip:"El tofu: sécalo muy bien y no lo muevas hasta que esté dorado. Si no, se rompe.",mercadona:["tofu","brócoli","soja","sésamo"]},
+
+  {id:28,emoji:"🍗",name:"Alitas crujientes en ActiFry",desc:"Como en un bar, sin aceite",time:"25 min",kcal:440,prot:34,carbs:2,fat:22,cat:"Carne",tags:["actifry","kids"],
+   photo:"https://images.unsplash.com/photo-1598103442097-8b74394b95c8?w=500&q=75",
+   ingredients:[{qty:"800g",n:"Alitas de pollo"},{qty:"1 cda",n:"Aceite de oliva"},{qty:"1 cda",n:"Pimentón ahumado"},{qty:"Ajo en polvo, orégano",n:"Al gusto"},{qty:"Sal y pimienta",n:"Al gusto"},{qty:"Salsa barbacoa",n:"Para mojar"}],
+   steps:[{t:"Marinar",s:"Aceite + especias. Unta bien las alitas. Reposa <strong>5 min</strong>.",timer:300},{t:"ActiFry",s:"<strong>Modo 6, 22-25 min</strong>. Sin la paleta.",timer:1500},{t:"Comprobar",s:"Jugo claro = listo. Si no, 3-5 min más."},{t:"Servir",s:"Con salsa barbacoa para mojar."}],
+   tip:"Secar bien las alitas antes — la humedad impide que queden crujientes.",mercadona:["alitas pollo","pimentón ahumado","barbacoa"]},
+
+  {id:29,emoji:"🌯",name:"Wrap vegetal con hummus",desc:"Rápido, sano y sabroso",time:"10 min",kcal:380,prot:12,carbs:44,fat:18,cat:"Vegetariano",tags:["veg"],
+   photo:"https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=500&q=75",
+   ingredients:[{qty:"3",n:"Tortillas grandes de trigo"},{qty:"1 tarro",n:"Hummus (nevera Mercadona)"},{qty:"2",n:"Aguacates maduros"},{qty:"½",n:"Pepino"},{qty:"Cherry",n:"Un puñado"},{qty:"Espinacas baby",n:"Un puñado"},{qty:"Limón",n:"Para el aguacate"}],
+   steps:[{t:"Relleno",s:"Aguacate en láminas + limón. Pepino y cherry cortados."},{t:"Untar",s:"Micro la tortilla 20 seg. Extiende hummus generosamente.",timer:20},{t:"Rellenar",s:"Espinacas + aguacate + pepino + cherry. Salpimenta."},{t:"Enrollar",s:"Dobla bordes y enrolla apretando. Corta en diagonal."}],
+   tip:"Calienta la tortilla antes de enrollar — más flexible y no se rompe.",mercadona:["tortillas","hummus","aguacate","espinacas"]},
+
+  {id:30,emoji:"🍌",name:"Plátanos caramelizados ActiFry",desc:"Postre de restaurante en 8 min",time:"8 min",kcal:310,prot:4,carbs:58,fat:8,cat:"Postre",tags:["actifry","kids"],
+   photo:"https://images.unsplash.com/photo-1495571758719-6ec1e876d6ae?w=500&q=75",
+   ingredients:[{qty:"4",n:"Plátanos maduros"},{qty:"1 cda",n:"Aceite de girasol"},{qty:"2 cdas",n:"Azúcar moreno"},{qty:"1 cda",n:"Miel"},{qty:"Helado de vainilla",n:"Para servir"},{qty:"Canela",n:"Al gusto"}],
+   steps:[{t:"Preparar",s:"Plátanos en rodajas gruesas de 2 cm."},{t:"Mezcla",s:"Aceite + azúcar moreno + miel. Añade los plátanos y mezcla."},{t:"ActiFry",s:"<strong>Modo 9, 5-6 min</strong>. Vigilar que no se pasen.",timer:360},{t:"Servir",s:"Inmediatamente sobre helado de vainilla con canela."}],
+   tip:"Plátanos maduros (manchas marrones) = mucho más dulces y mejores.",mercadona:["plátano","azúcar moreno","miel","helado vainilla"]},
+];
+
+// Mercadona sections mapping
+const MERC_SECTIONS={
+  "🥩 Carnicería":["carne picada","pollo","pechuga","muslos","alitas","jamón serrano","bacon","hamburguesa"],
+  "🐟 Pescadería":["salmón","merluza","gambas","langostinos","mejillones","atún","calamares"],
+  "🥚 Huevos y lácteos":["huevos","leche","mantequilla","nata","crema agria","leche de coco"],
+  "🧀 Quesos":["queso","mozzarella","parmesano","feta","cheddar"],
+  "🍝 Pasta y arroz":["pasta","espaguetis","penne","fusilli","espirales","macarrones","arroz","noodles","fideos"],
+  "🫙 Conservas":["tomate frito","tomate triturado","atún","aceitunas","maíz","alubias","garbanzos","lentejas","pesto","hummus","caldo"],
+  "🥦 Frutas y verduras":["tomate","pimiento","cebolla","ajo","zanahoria","brócoli","calabaza","limón","lima","aguacate","pepino","cherry","plátano","jengibre"],
+  "🥬 Frescos y refrigerados":["tortillas","masa pizza","mezclum","espinacas","tofu","lechuga"],
+  "❄️ Congelados":["patatas congeladas","guisantes congelados","mejillones congelados"],
+  "🍞 Pan y bollería":["pan","panes brioche","pan de barra","pan molde"],
+  "🧂 Especias y salsas":["curry","pimentón","orégano","comino","especias fajita","sal","pimienta","ajo en polvo","eneldo","azafrán","soja","vinagre","miel","barbacoa","ketchup","mayo"],
+  "🛢️ Aceites":["aceite de oliva","aceite de sésamo","aceite girasol"],
+  "🍫 Dulces":["nutella","mermelada","helado","azúcar moreno","azúcar glass","canela"],
+};
+
+function getSection(name){
+  const lower=name.toLowerCase();
+  for(const [sec,keys] of Object.entries(MERC_SECTIONS)){
+    if(keys.some(k=>lower.includes(k))) return sec;
+  }
+  return "🛒 Otros";
+}
+
+// ══════════════════════════════════════════════════════════
+// LOCAL STORAGE — HISTORY, FAVORITES, RATINGS
+// ══════════════════════════════════════════════════════════
+function loadStorage(key,def){
+  try{ const v=localStorage.getItem(key); return v?JSON.parse(v):def; }
+  catch{ return def; }
+}
+function saveStorage(key,val){ try{ localStorage.setItem(key,JSON.stringify(val)); }catch{} }
+
+let favorites=loadStorage('chef_favorites',[]);
+let cookedHistory=loadStorage('chef_history',[]); // [{id,date,rating}]
+let weekMenu=loadStorage('chef_menu',[1,13,9,7,18,11,19]);
+let checkedShop=new Set(loadStorage('chef_shop',[]));
+
+function saveFavorites(){ saveStorage('chef_favorites',favorites); }
+function saveHistory(){ saveStorage('chef_history',cookedHistory); }
+function saveMenu(){ saveStorage('chef_menu',weekMenu); }
+function saveShop(){ saveStorage('chef_shop',[...checkedShop]); }
+
+function toggleFavorite(id){
+  if(favorites.includes(id)) favorites=favorites.filter(f=>f!==id);
+  else favorites.push(id);
+  saveFavorites();
+}
+function isFav(id){ return favorites.includes(id); }
+
+function markCooked(id, rating=0){
+  cookedHistory.unshift({id, date:new Date().toISOString().split('T')[0], rating});
+  if(cookedHistory.length>100) cookedHistory=cookedHistory.slice(0,100);
+  saveHistory();
+}
+function getCookedCount(id){ return cookedHistory.filter(h=>h.id===id).length; }
+function getLastRating(id){
+  const h=cookedHistory.find(h=>h.id===id); return h?h.rating:0;
+}
+function setRating(id,rating){
+  const h=cookedHistory.find(h=>h.id===id);
+  if(h) h.rating=rating; else cookedHistory.unshift({id,date:new Date().toISOString().split('T')[0],rating});
+  saveHistory();
+}
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+const DAYS=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+const DNUMS=["L","M","X","J","V","S","D"];
+let currentFilter="Todos";
+let currentRecipeId=null;
+let recipeOrigin="biblioteca";
+let changeDayIdx=null;
+let guidedRecipeId=null;
+let guidedStep=0;
+let timerInterval=null;
+let timerSecs=0;
+let timerRunning=false;
+
+const FILTERS=["Todos","Favoritos","Pasta","Arroz","Pescado","Carne","Vegetariano","Mundo","ActiFry","Horneado","Postre"];
+
+function R(id){ return RECIPES.find(r=>r.id===id)||RECIPES[0]; }
+
+// ══════════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════════
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  const order=['hoy','menu','biblioteca','cocinar','historial','nutricion','compra'];
+  const navOrder=['hoy','menu','biblioteca','cocinar',null,'nutricion','compra'];
+  const ni=navOrder.indexOf(name);
+  if(ni>=0&&ni<6) document.querySelectorAll('.nav-btn')[ni>=4?ni-1:ni]&&
+    document.querySelectorAll('.nav-btn')[ni>=4?ni:ni].classList.add('active');
+  const navMap={hoy:0,menu:1,biblioteca:2,cocinar:3,nutricion:4,compra:5};
+  if(navMap[name]!==undefined) document.querySelectorAll('.nav-btn')[navMap[name]].classList.add('active');
+  if(name==='hoy') renderHoy();
+  if(name==='menu') renderMenu();
+  if(name==='biblioteca') renderBiblioteca();
+  if(name==='nutricion') renderNutricion();
+  if(name==='compra') renderCompra();
+  if(name==='historial') renderHistorial();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+function imgThumb(url,emoji,cls='',style=''){
+  return `<img src="${url}" class="${cls}" style="${style}" onerror="this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex');" loading="lazy"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:2.2rem;">${emoji}</span>`;
+}
+
+function starsHtml(id,size='1rem'){
+  const r=getLastRating(id);
+  return [1,2,3,4,5].map(s=>`<button class="star-btn" onclick="rateRecipe(${id},${s})" style="font-size:${size}">${s<=r?'⭐':'☆'}</button>`).join('');
+}
+
+function rateRecipe(id,rating){
+  setRating(id,rating);
+  toast(`${['😐','🙂','😊','😍','🤩'][rating-1]} Valoración guardada`);
+  // Re-render if we're on recipe detail
+  const recipeView=document.getElementById('view-receta');
+  if(recipeView.classList.contains('active')) renderRecipeDetail(id);
+}
+
+function formatTime(s){ const m=Math.floor(s/60); return `${m}:${(s%60).toString().padStart(2,'0')}`; }
+
+// ══════════════════════════════════════════════════════════
+// HOY
+// ══════════════════════════════════════════════════════════
+function renderHoy(){
+  const today=new Date().getDay();
+  const dayIdx=today===0?6:today-1;
+  const r=R(weekMenu[dayIdx]);
+  const cooked=getCookedCount(r.id);
+  const el=document.getElementById('view-hoy');
+
+  el.innerHTML=`
+    ${getPWABanner()}
+
+    <div class="today-hero">
+      <div class="today-big-emoji">${r.emoji}</div>
+      <h2>¿Qué cenamos<br>esta noche?</h2>
+      <div class="sub">${DAYS[dayIdx]} · ${new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long'})}</div>
+    </div>
+
+    <div class="today-actions">
+      <div class="action-btn primary" onclick="startGuided(${r.id})">
+        <span class="ab-icon">🍳</span>
+        <span class="ab-title">Cocinar ahora</span>
+        <span class="ab-sub">Modo guiado con timers</span>
+      </div>
+      <div class="action-btn" onclick="randomToday()">
+        <span class="ab-icon">🎲</span>
+        <span class="ab-title">Sorpréndeme</span>
+        <span class="ab-sub">Receta aleatoria</span>
+      </div>
+      <div class="action-btn" onclick="showView('compra')">
+        <span class="ab-icon">🛒</span>
+        <span class="ab-title">Lista Mercadona</span>
+        <span class="ab-sub">${getUncheckedCount()} productos pendientes</span>
+      </div>
+      <div class="action-btn" onclick="showView('historial')">
+        <span class="ab-icon">📖</span>
+        <span class="ab-title">Historial</span>
+        <span class="ab-sub">${cookedHistory.length} cenas registradas</span>
+      </div>
+    </div>
+
+    <div class="sec">🌟 Cena de hoy</div>
+    <div class="today-recipe-card card">
+      <div style="position:relative;height:170px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--surface2);">
+        ${imgThumb(r.photo,r.emoji,'','width:100%;height:100%;object-fit:cover;position:absolute;inset:0;')}
+        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(10,8,5,0.95) 0%,transparent 55%);display:flex;flex-direction:column;justify-content:flex-end;padding:1rem;">
+          <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+            <span class="tag time">⏱ ${r.time}</span><span class="tag kcal">🔥 ${r.kcal}kcal</span><span class="tag cat">${r.cat}</span>
+            ${cooked>0?`<span class="tag cooked">✓ Cocinada ${cooked}x</span>`:''}
+          </div>
+        </div>
+      </div>
+      <div style="padding:1rem;">
+        <h3 style="font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700;">${r.name}</h3>
+        <p style="font-size:0.76rem;color:var(--text2);margin-top:0.2rem;">${r.desc}</p>
+        <div class="rating-row">${starsHtml(r.id,'1.1rem')}<span class="cooked-count" style="margin-left:0.3rem;">${cooked>0?`Cocinada ${cooked} vez${cooked>1?'es':''}`:'¡Aún sin cocinar!'}</span></div>
+        <button class="cook-now-btn" style="margin-top:0.75rem;" onclick="openRecipe(${r.id},'hoy')">Ver receta completa →</button>
+      </div>
+    </div>`;
+}
+
+function randomToday(){
+  const r=RECIPES[Math.floor(Math.random()*RECIPES.length)];
+  openRecipe(r.id,'hoy');
+}
+
+function getUncheckedCount(){
+  const total=buildShoppingData();
+  let n=0;
+  Object.values(total).forEach(sec=>n+=Object.keys(sec).length);
+  return n-checkedShop.size;
+}
+
+// ══════════════════════════════════════════════════════════
+// PWA INSTALL BANNER
+// ══════════════════════════════════════════════════════════
+let deferredPrompt=null;
+let bannerDismissed=loadStorage('chef_banner_dismissed',false);
+
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  deferredPrompt=e;
+  renderHoy();
+});
+
+function getPWABanner(){
+  if(bannerDismissed||!deferredPrompt) return '';
+  return `<div class="install-banner">
+    <div class="ib-icon">📲</div>
+    <div style="flex:1">
+      <h3>Instalar como app</h3>
+      <p>Acceso rápido desde tu pantalla de inicio · funciona offline</p>
+    </div>
+    <button class="install-btn" onclick="installPWA()">Instalar</button>
+    <button class="install-dismiss" onclick="dismissBanner()">✕</button>
+  </div>`;
+}
+
+async function installPWA(){
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const {outcome}=await deferredPrompt.userChoice;
+  if(outcome==='accepted') toast('✅ App instalada');
+  deferredPrompt=null;
+  renderHoy();
+}
+
+function dismissBanner(){
+  bannerDismissed=true;
+  saveStorage('chef_banner_dismissed',true);
+  renderHoy();
+}
+
+// ══════════════════════════════════════════════════════════
+// MENÚ SEMANAL
+// ══════════════════════════════════════════════════════════
+function renderMenu(){
+  const today=new Date().getDay();
+  const todayIdx=today===0?6:today-1;
+  const el=document.getElementById('view-menu');
+
+  el.innerHTML=`
+    <div class="ai-banner">
+      <div class="ai-icon">🧠</div>
+      <div style="flex:1">
+        <h3>Menú con IA</h3>
+        <p>Claude genera un menú variado basado en tu historial</p>
+      </div>
+      <button class="ai-gen-btn" id="ai-btn" onclick="generateAIMenu()">✨ Generar</button>
+    </div>
+    <div class="ai-loading" id="ai-loading">
+      <div class="ai-spinner">🤖</div>
+      <p style="font-size:0.78rem;color:var(--text2);margin-top:0.45rem;">Analizando tu historial y generando menú...</p>
+    </div>
+    <div class="sec">📅 Esta semana</div>
+    <div class="week-list">
+      ${DAYS.map((d,di)=>{
+        const r=R(weekMenu[di]);
+        const isToday=di===todayIdx;
+        const cooked=getCookedCount(r.id);
+        return `<div class="day-row" style="${isToday?'border-color:var(--orange);':''}" >
+          <div class="day-pill"><span class="dpl">${DNUMS[di]}</span><span class="dpd">${d.substring(0,3)}</span></div>
+          <div class="day-emoji">
+            ${imgThumb(r.photo,r.emoji,'','width:100%;height:100%;object-fit:cover;position:absolute;inset:0;')}
+            <span style="position:relative;font-size:1.5rem;">${r.emoji}</span>
+          </div>
+          <div class="day-info">
+            <h3>${r.name}</h3>
+            <div class="di-meta">⏱ ${r.time} · 🔥${r.kcal}kcal${cooked>0?` · ✓${cooked}x`:''}</div>
+          </div>
+          <div class="day-btns">
+            <button class="btn-sm cook" onclick="startGuided(${r.id})">🍳</button>
+            <button class="btn-sm" onclick="openRecipe(${r.id},'menu')">Ver</button>
+            <button class="btn-sm" onclick="openChangeDay(${di})">⇄</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// AI MENU
+async function generateAIMenu(){
+  const btn=document.getElementById('ai-btn');
+  const loading=document.getElementById('ai-loading');
+  btn.disabled=true; btn.textContent='⏳';
+  loading.classList.add('show');
+
+  // Build history context
+  const favIds=favorites.slice(0,10);
+  const recentIds=[...new Set(cookedHistory.slice(0,20).map(h=>h.id))];
+  const topRated=cookedHistory.filter(h=>h.rating>=4).map(h=>h.id).slice(0,10);
+  const recipeList=RECIPES.map(r=>`${r.id}:${r.name}(${r.cat}${r.tags.includes('kids')?',kids':''}${r.tags.includes('veg')?',veg':''})`).join('\n');
+
+  const prompt=`Eres un chef y nutricionista. Genera un menú semanal de cenas para una familia española: mujer 49 años, hombre 53 años, niña 11 años. Sin alergias.
+
+Biblioteca de recetas disponibles:
+${recipeList}
+
+Datos de la familia:
+- Favoritas (IDs): ${favIds.join(',')||'ninguna aún'}
+- Últimas cocinadas (IDs): ${recentIds.join(',')||'ninguna aún'}
+- Mejor valoradas 4-5 estrellas (IDs): ${topRated.join(',')||'ninguna aún'}
+- IDs a evitar esta semana (ya cocinadas recientemente): ${recentIds.slice(0,5).join(',')||'ninguno'}
+
+Reglas:
+- Selecciona exactamente 7 recetas distintas (una por día: Lunes a Domingo)
+- NO repitas recetas de la lista "ya cocinadas recientemente" si puedes evitarlo
+- SÍ prioriza las favoritas y mejor valoradas cuando encajen
+- Varía categorías: no más de 2 del mismo tipo
+- Al menos: 1 pescado, 1 vegetariana, 1 pasta/arroz, 1 que le guste a una niña de 11 años
+- Viernes/Sábado: algo especial (pizza, hamburguesa, tacos, crêpes...)
+- Equilibra kcal a lo largo de la semana
+
+Responde SOLO con JSON sin texto adicional ni backticks:
+{"menu":[id1,id2,id3,id4,id5,id6,id7]}`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    const text=data.content.map(i=>i.text||'').join('');
+    const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+    if(parsed.menu?.length===7&&parsed.menu.every(id=>RECIPES.find(r=>r.id===id))){
+      weekMenu=parsed.menu; saveMenu();
+      renderMenu(); renderCompra();
+      toast('🧠 Menú generado con IA según tu historial');
+    } else throw new Error('bad');
+  } catch{
+    // Smart fallback with history awareness
+    const avoidIds=new Set(cookedHistory.slice(0,5).map(h=>h.id));
+    const cats=['Pescado','Vegetariano','Pasta','Carne','Horneado','Carne','Arroz'];
+    weekMenu=cats.map((cat,i)=>{
+      let pool=RECIPES.filter(r=>r.cat===cat&&!avoidIds.has(r.id));
+      if(!pool.length) pool=RECIPES.filter(r=>r.cat===cat);
+      if(!pool.length) pool=RECIPES;
+      // Prefer favorites
+      const favPool=pool.filter(r=>favorites.includes(r.id));
+      const source=favPool.length?favPool:pool;
+      return source[Math.floor(Math.random()*source.length)].id;
+    });
+    saveMenu(); renderMenu(); renderCompra();
+    toast('🎲 Menú generado con tus preferencias');
+  }
+  btn.disabled=false; btn.textContent='✨ Generar';
+  loading.classList.remove('show');
+}
+
+function openChangeDay(dayIdx){
+  changeDayIdx=dayIdx;
+  recipeOrigin='changeDay';
+  renderBiblioteca(true,dayIdx);
+  showView('biblioteca');
+}
+
+// ══════════════════════════════════════════════════════════
+// BIBLIOTECA
+// ══════════════════════════════════════════════════════════
+function renderBiblioteca(changeMode=false,dayIdx=null){
+  let pool=RECIPES;
+  if(currentFilter==='Favoritos') pool=RECIPES.filter(r=>favorites.includes(r.id));
+  else if(currentFilter!=='Todos') pool=RECIPES.filter(r=>r.cat===currentFilter||(currentFilter==='Mundo'&&r.tags.includes('world'))||(currentFilter==='ActiFry'&&r.tags.includes('actifry')));
+
+  const el=document.getElementById('view-biblioteca');
+  el.innerHTML=`
+    ${changeMode?`<div style="background:rgba(240,145,58,0.1);border:1px solid rgba(240,145,58,0.3);border-radius:12px;padding:0.8rem;margin-bottom:0.8rem;display:flex;align-items:center;gap:0.7rem;">
+      <span style="font-size:1.2rem;">📅</span>
+      <span style="flex:1;font-size:0.8rem;font-weight:600;">Elige para el <strong>${DAYS[dayIdx]}</strong></span>
+      <button onclick="cancelChange()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:0.28rem 0.6rem;color:var(--text2);font-size:0.7rem;cursor:pointer;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;">✕ Cancelar</button>
+    </div>`:`<div class="sec">📚 Biblioteca · ${pool.length} recetas</div>`}
+    <div class="filter-scroll">
+      ${FILTERS.map(f=>`<button class="filt-btn ${f===currentFilter?'active':''}" onclick="setFilter('${f}',${changeMode},${dayIdx})">${f==='Favoritos'?'❤️ '+f:f}</button>`).join('')}
+    </div>
+    <div class="lib-grid">
+      ${pool.map(r=>{
+        const cooked=getCookedCount(r.id);
+        const fav=isFav(r.id);
+        return `<div class="lib-card" onclick="${changeMode?`assignDay(${r.id},${dayIdx})`:`openRecipe(${r.id},'biblioteca')`}">
+          <div class="lib-thumb">
+            ${imgThumb(r.photo,r.emoji)}
+          </div>
+          <div class="lib-info">
+            <h3>${r.name}</h3>
+            <p>${r.desc}</p>
+            <div class="lib-tags">
+              <span class="tag time">⏱${r.time}</span>
+              <span class="tag kcal">🔥${r.kcal}</span>
+              ${r.tags.includes('kids')?'<span class="tag kids">⭐</span>':''}
+              ${r.tags.includes('veg')?'<span class="tag veg">🌿</span>':''}
+              ${r.tags.includes('actifry')?'<span class="tag actifry">ActiFry</span>':''}
+              ${cooked>0?`<span class="tag cooked">✓${cooked}x</span>`:''}
+            </div>
+          </div>
+          ${changeMode
+            ?`<span style="color:var(--green);font-weight:900;font-size:1.2rem;flex-shrink:0;">+</span>`
+            :`<button class="lib-fav-btn" onclick="event.stopPropagation();toggleFavAndUpdate(${r.id})">${fav?'❤️':'🤍'}</button>`}
+        </div>`;
+      }).join('')}
+      ${pool.length===0?`<div style="text-align:center;padding:2rem;color:var(--text3);">No hay recetas favoritas aún.<br>¡Explora la biblioteca y marca las que te gusten!</div>`:''}
+    </div>`;
+}
+
+function toggleFavAndUpdate(id){
+  toggleFavorite(id);
+  renderBiblioteca(recipeOrigin==='changeDay', changeDayIdx);
+  toast(isFav(id)?'❤️ Añadida a favoritas':'🤍 Eliminada de favoritas');
+}
+
+function setFilter(f,changeMode=false,dayIdx=null){ currentFilter=f; renderBiblioteca(changeMode,dayIdx); }
+function cancelChange(){ recipeOrigin='biblioteca'; renderBiblioteca(); }
+function assignDay(recipeId,dayIdx){
+  weekMenu[dayIdx]=recipeId; saveMenu();
+  recipeOrigin='biblioteca'; renderBiblioteca(); renderMenu(); renderCompra();
+  toast(`✅ ${DAYS[dayIdx]}: ${R(recipeId).name}`);
+}
+
+// ══════════════════════════════════════════════════════════
+// RECETA DETALLE
+// ══════════════════════════════════════════════════════════
+function openRecipe(id,origin='biblioteca'){
+  recipeOrigin=origin; currentRecipeId=id;
+  renderRecipeDetail(id);
+  document.getElementById('view-receta').classList.remove('active');
+  document.getElementById('view-receta').classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>{if(v.id!=='view-receta')v.classList.remove('active');});
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function renderRecipeDetail(id){
+  const r=R(id);
+  const cooked=getCookedCount(id);
+  const fav=isFav(id);
+  const el=document.getElementById('view-receta');
+
+  el.innerHTML=`
+    <button class="back-pill" onclick="goBack()">← Volver</button>
+
+    <div class="recipe-hero">
+      ${imgThumb(r.photo,r.emoji,'','width:100%;height:100%;object-fit:cover;position:absolute;inset:0;')}
+      <div class="recipe-hero-overlay">
+        <h2>${r.name}</h2>
+        <div class="recipe-hero-meta">
+          <span class="tag time">⏱ ${r.time}</span>
+          <span class="tag kcal">🔥 ${r.kcal} kcal</span>
+          <span class="tag cat">${r.cat}</span>
+          ${r.tags.includes('kids')?'<span class="tag kids">⭐ Niños</span>':''}
+          ${r.tags.includes('veg')?'<span class="tag veg">🌿 Veg</span>':''}
+        </div>
+      </div>
+    </div>
+
+    <div class="nutr-bar">
+      <h4>📊 Valores por persona</h4>
+      <div class="nutr-grid">
+        <div class="nutr-item"><div class="nutr-val">${r.kcal}</div><div class="nutr-label">kcal</div></div>
+        <div class="nutr-item"><div class="nutr-val">${r.prot}g</div><div class="nutr-label">Proteína</div></div>
+        <div class="nutr-item"><div class="nutr-val">${r.carbs}g</div><div class="nutr-label">Carbos</div></div>
+        <div class="nutr-item"><div class="nutr-val">${r.fat}g</div><div class="nutr-label">Grasa</div></div>
+      </div>
+      <div style="margin-top:0.65rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.4rem;">
+        <div class="rating-row">${starsHtml(id)}<span class="cooked-count" style="margin-left:0.35rem;">${cooked>0?`Cocinada ${cooked}x`:'Sin cocinar aún'}</span></div>
+        <button onclick="toggleFavAndUpdate(${id})" style="background:none;border:1px solid var(--border);border-radius:8px;padding:0.3rem 0.65rem;color:var(--text2);font-size:0.75rem;cursor:pointer;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;">${fav?'❤️ En favoritas':'🤍 Añadir a favoritas'}</button>
+      </div>
+    </div>
+
+    <div class="assign-row">
+      <button class="assign-btn-full" onclick="openAssignModal(${id})">📅 Poner en menú</button>
+      <button class="cook-guided-btn" onclick="startGuided(${id})">🍳 Cocinar ahora</button>
+    </div>
+
+    <div class="sec">🧺 Ingredientes <span style="font-size:0.68rem;font-weight:400;color:var(--text2)">(3 personas)</span></div>
+    <div class="ing-grid">
+      ${r.ingredients.map(i=>`<div class="ing-item"><span class="ing-qty">${i.qty}</span><span>${i.n}</span></div>`).join('')}
+    </div>
+
+    <div class="sec">📋 Preparación</div>
+    <ol class="steps-list">
+      ${r.steps.map((s,idx)=>`<li class="step-card">
+        <div class="step-num-badge">${idx+1}</div>
+        <div class="step-body">
+          <div class="step-title">${s.t}</div>
+          <div class="step-text">${s.s}</div>
+          ${s.timer?`<div class="step-timer-badge">⏱ ${formatTime(s.timer)}</div>`:''}
+        </div>
+      </li>`).join('')}
+    </ol>
+
+    <div class="tip-card">
+      <div class="tip-head">💡 Truco del chef</div>
+      <div class="tip-body">${r.tip}</div>
+    </div>`;
+}
+
+function goBack(){
+  if(recipeOrigin==='hoy'||recipeOrigin==='menu'){ renderMenu(); showView('menu'); }
+  else if(recipeOrigin==='cocinar') showView('cocinar');
+  else { renderBiblioteca(); showView('biblioteca'); }
+}
+
+// ASSIGN MODAL
+function openAssignModal(id){
+  currentRecipeId=id;
+  document.getElementById('modal-day-grid').innerHTML=DAYS.map((d,di)=>{
+    const cur=R(weekMenu[di]);
+    return `<button class="modal-day-btn" onclick="assignToDay(${id},${di})">
+      <span class="mdb-name">${DNUMS[di]} ${d}</span>
+      <span class="mdb-cur">${cur.emoji} ${cur.name}</span>
+    </button>`;
+  }).join('');
+  document.getElementById('modal-assign').classList.add('open');
+}
+function assignToDay(recipeId,dayIdx){
+  weekMenu[dayIdx]=recipeId; saveMenu();
+  closeAssignModal(); renderCompra();
+  renderRecipeDetail(recipeId);
+  toast(`✅ ${DAYS[dayIdx]}: ${R(recipeId).name}`);
+}
+function closeAssignModal(e){
+  if(!e||e.target===document.getElementById('modal-assign'))
+    document.getElementById('modal-assign').classList.remove('open');
+}
+
+// ══════════════════════════════════════════════════════════
+// COCINA GUIADA
+// ══════════════════════════════════════════════════════════
+function startGuided(id){
+  guidedRecipeId=id; guidedStep=0;
+  stopTimer();
+  renderGuided();
+  showView('cocinar');
+}
+
+function renderGuided(){
+  const r=R(guidedRecipeId);
+  const step=r.steps[guidedStep];
+  const pct=Math.round((guidedStep/r.steps.length)*100);
+  const el=document.getElementById('view-cocinar');
+
+  el.innerHTML=`
+    <div class="guided-header">
+      <div style="font-size:0.68rem;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.28rem;">🍳 Modo cocina guiada</div>
+      <h2>${r.emoji} ${r.name}</h2>
+      <div class="gh-sub">⏱ ${r.time} · 👥 3 personas · 🔥 ${r.kcal} kcal</div>
+    </div>
+
+    <div class="prog-wrap">
+      <div class="prog-label"><span>Paso ${guidedStep+1} de ${r.steps.length}</span><span style="color:var(--green);font-weight:700;">${pct}%</span></div>
+      <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:${pct}%"></div></div>
+    </div>
+
+    ${guidedStep===0?`<div class="guided-ingredients">
+      <h4>🧺 Ten preparado</h4>
+      <div class="ing-grid" style="margin:0;">
+        ${r.ingredients.map(i=>`<div class="ing-item"><span class="ing-qty">${i.qty}</span><span>${i.n}</span></div>`).join('')}
+      </div>
+    </div>`:''}
+
+    <div class="guided-step">
+      <div class="gs-num">Paso ${guidedStep+1} — ${step.t}</div>
+      <div class="gs-title">${step.t}</div>
+      <div class="gs-text">${step.s}</div>
+      ${step.timer?`<div class="timer-block">
+        <div class="timer-display" id="td">${formatTime(step.timer)}</div>
+        <div class="timer-label" id="tl">⏱ ${formatTime(step.timer)}</div>
+        <div class="timer-btns">
+          <button class="timer-btn start" id="tb" onclick="toggleTimer(${step.timer})">▶ Iniciar</button>
+          <button class="timer-btn reset" onclick="resetTimer(${step.timer})">↺ Reset</button>
+        </div>
+      </div>`:''}
+    </div>
+
+    <div class="guided-nav">
+      <button class="gnav-btn" onclick="prevStep()" ${guidedStep===0?'disabled':''}>← Anterior</button>
+      ${guidedStep<r.steps.length-1
+        ?`<button class="gnav-btn next" onclick="nextStep()">Siguiente →</button>`
+        :`<button class="gnav-btn finish" onclick="finishCooking()">🎉 ¡Listo para servir!</button>`}
+    </div>
+
+    <div class="tip-card">
+      <div class="tip-head">💡 Truco</div>
+      <div class="tip-body">${r.tip}</div>
+    </div>`;
+}
+
+function nextStep(){ stopTimer(); if(guidedStep<R(guidedRecipeId).steps.length-1){ guidedStep++; renderGuided(); window.scrollTo({top:0,behavior:'smooth'}); } }
+function prevStep(){ stopTimer(); if(guidedStep>0){ guidedStep--; renderGuided(); window.scrollTo({top:0,behavior:'smooth'}); } }
+function finishCooking(){
+  stopTimer();
+  markCooked(guidedRecipeId);
+  saveHistory();
+  const r=R(guidedRecipeId);
+  document.getElementById('view-cocinar').innerHTML=`
+    <div style="text-align:center;padding:2.5rem 1rem;">
+      <div style="font-size:4.5rem;margin-bottom:1rem;">🎉</div>
+      <h2 style="font-family:'Fraunces',serif;font-size:1.5rem;font-weight:900;margin-bottom:0.4rem;">${r.name} listo</h2>
+      <p style="color:var(--text2);margin-bottom:1.2rem;">¿Qué te ha parecido?</p>
+      <div style="display:flex;justify-content:center;gap:0.5rem;margin-bottom:1.5rem;">${starsHtml(r.id,'1.8rem')}</div>
+      <button onclick="showView('hoy')" class="cook-now-btn" style="max-width:260px;margin:0 auto;display:block;">Volver al inicio</button>
+    </div>`;
+}
+
+// TIMER
+function toggleTimer(secs){ if(timerRunning) stopTimer(); else startTimer(secs); }
+function startTimer(total){
+  if(timerSecs<=0) timerSecs=total;
+  timerRunning=true;
+  const btn=document.getElementById('tb');
+  if(btn) btn.textContent='⏸ Pausar';
+  timerInterval=setInterval(()=>{
+    timerSecs--;
+    const d=document.getElementById('td');
+    const b=document.getElementById('tb');
+    if(!d){ clearInterval(timerInterval); return; }
+    d.textContent=formatTime(timerSecs);
+    if(timerSecs<=10) d.className='timer-display warning';
+    if(timerSecs<=0){
+      d.textContent='¡Listo!'; d.className='timer-display done';
+      if(b) b.textContent='▶ Reiniciar';
+      clearInterval(timerInterval); timerRunning=false;
+      if(navigator.vibrate) navigator.vibrate([300,100,300,100,300]);
+      toast('⏰ ¡Tiempo completado!');
+    }
+  },1000);
+}
+function stopTimer(){ clearInterval(timerInterval); timerRunning=false; timerSecs=0; }
+function resetTimer(secs){
+  stopTimer(); timerSecs=secs;
+  const d=document.getElementById('td'); const b=document.getElementById('tb');
+  if(d){ d.textContent=formatTime(secs); d.className='timer-display'; }
+  if(b) b.textContent='▶ Iniciar';
+}
+
+// ══════════════════════════════════════════════════════════
+// HISTORIAL
+// ══════════════════════════════════════════════════════════
+function renderHistorial(){
+  const el=document.getElementById('view-historial');
+  const totalCooked=cookedHistory.length;
+  const uniqueCooked=new Set(cookedHistory.map(h=>h.id)).size;
+  const favCount=favorites.length;
+
+  const topRated=[...RECIPES].filter(r=>getLastRating(r.id)>=4).sort((a,b)=>getLastRating(b.id)-getLastRating(a.id)).slice(0,5);
+  const recent=[...new Map(cookedHistory.map(h=>[h.id,h])).values()].slice(0,10);
+
+  el.innerHTML=`
+    <div class="sec">📖 Tu historial de cocina</div>
+    <div class="hist-summary">
+      <div class="hist-stat"><div class="hs-val">${totalCooked}</div><div class="hs-label">Cenas cocinadas</div></div>
+      <div class="hist-stat"><div class="hs-val">${uniqueCooked}</div><div class="hs-label">Recetas distintas</div></div>
+      <div class="hist-stat"><div class="hs-val">${favCount}</div><div class="hs-label">Favoritas</div></div>
+    </div>
+
+    ${topRated.length?`<div class="sec">⭐ Mejor valoradas</div>
+    ${topRated.map(r=>`<div class="hist-item" onclick="openRecipe(${r.id},'historial')">
+      <div class="hist-emoji">${r.emoji}</div>
+      <div class="hist-info">
+        <h3>${r.name}</h3>
+        <p>${r.cat} · Cocinada ${getCookedCount(r.id)}x</p>
+      </div>
+      <div class="hist-stars">${'⭐'.repeat(getLastRating(r.id))}</div>
+    </div>`).join('')}`:''}
+
+    ${favorites.length?`<div class="sec">❤️ Favoritas</div>
+    ${RECIPES.filter(r=>favorites.includes(r.id)).map(r=>`<div class="hist-item" onclick="openRecipe(${r.id},'historial')">
+      <div class="hist-emoji">${r.emoji}</div>
+      <div class="hist-info">
+        <h3>${r.name}</h3>
+        <p>${r.cat} · ${getCookedCount(r.id)>0?`Cocinada ${getCookedCount(r.id)}x`:'Aún sin cocinar'}</p>
+      </div>
+      <div class="hist-stars">❤️</div>
+    </div>`).join('')}`:''}
+
+    ${recent.length?`<div class="sec">🕐 Últimas cocinadas</div>
+    ${recent.map(h=>{const r=R(h.id);return `<div class="hist-item" onclick="openRecipe(${r.id},'historial')">
+      <div class="hist-emoji">${r.emoji}</div>
+      <div class="hist-info">
+        <h3>${r.name}</h3>
+        <p>${h.date} · ${r.cat}</p>
+      </div>
+      <div class="hist-stars">${getLastRating(r.id)>0?'⭐'.repeat(getLastRating(r.id)):'—'}</div>
+    </div>`;}).join('')}`:
+    `<div style="text-align:center;padding:2rem;color:var(--text3);">
+      <div style="font-size:3rem;margin-bottom:0.5rem;">🍳</div>
+      <p style="font-size:0.85rem;">Aún no hay historial.<br>¡Cocina tu primera receta!</p>
+    </div>`}
+
+    ${cookedHistory.length>0?`<button onclick="clearHistorial()" style="background:none;border:1px solid rgba(217,95,75,0.3);color:var(--red);padding:0.55rem 1rem;border-radius:9px;font-family:'Cabinet Grotesk',sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;margin-top:0.75rem;">🗑 Borrar historial</button>`:''}`;
+}
+
+function clearHistorial(){
+  if(confirm('¿Borrar todo el historial de cocina?')){ cookedHistory=[]; saveHistory(); renderHistorial(); toast('🗑 Historial borrado'); }
+}
+
+// ══════════════════════════════════════════════════════════
+// NUTRICIÓN
+// ══════════════════════════════════════════════════════════
+function renderNutricion(){
+  const el=document.getElementById('view-nutricion');
+  const totalKcal=weekMenu.reduce((s,id)=>s+R(id).kcal,0);
+  const totalProt=weekMenu.reduce((s,id)=>s+R(id).prot,0);
+  const totalCarbs=weekMenu.reduce((s,id)=>s+R(id).carbs,0);
+  const totalFat=weekMenu.reduce((s,id)=>s+R(id).fat,0);
+  const maxKcal=Math.max(...weekMenu.map(id=>R(id).kcal));
+
+  el.innerHTML=`
+    <div class="sec">📊 Nutrición semanal</div>
+    <div class="nutr-summary">
+      <div><div class="ns-val">${Math.round(totalKcal/7)}</div><div class="ns-label">kcal/día</div></div>
+      <div><div class="ns-val">${Math.round(totalProt/7)}g</div><div class="ns-label">Proteína/día</div></div>
+      <div><div class="ns-val">${Math.round(totalKcal/3)}</div><div class="ns-label">kcal/semana</div></div>
+    </div>
+    <div class="sec">Cenas día a día</div>
+    <div class="nutr-week">
+      ${weekMenu.map((id,di)=>{
+        const r=R(id); const pct=Math.round((r.kcal/maxKcal)*100);
+        const color=r.kcal<350?'var(--green)':r.kcal<500?'var(--orange)':'var(--red)';
+        return `<div class="nutr-row">
+          <div class="nutr-day">${DNUMS[di]}</div>
+          <div class="nutr-name">${r.emoji} ${r.name}</div>
+          <div class="nutr-bar-mini"><div style="background:var(--surface2);border-radius:3px;height:4px;overflow:hidden;"><div style="width:${pct}%;background:${color};height:100%;"></div></div></div>
+          <div class="nutr-kcal" style="color:${color}">${r.kcal}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="sec">Distribución de macros</div>
+    <div class="card" style="padding:1rem;">
+      ${[['Proteína',totalProt,'var(--blue)'],['Carbohidratos',totalCarbs,'var(--gold)'],['Grasa',totalFat,'var(--red)']].map(([label,val,color])=>{
+        const pct=Math.round(val/(totalProt+totalCarbs+totalFat)*100);
+        return `<div style="margin-bottom:0.7rem;">
+          <div style="display:flex;justify-content:space-between;font-size:0.73rem;font-weight:600;margin-bottom:0.28rem;">
+            <span>${label}</span><span style="color:${color}">${Math.round(val/7)}g/día · ${pct}%</span>
+          </div>
+          <div style="background:var(--surface2);border-radius:4px;height:7px;overflow:hidden;">
+            <div style="width:${pct}%;background:${color};height:100%;border-radius:4px;"></div>
+          </div>
+        </div>`;
+      }).join('')}
+      <p style="font-size:0.68rem;color:var(--text3);margin-top:0.5rem;">* Valores aproximados por persona adulta.</p>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// COMPRA — MERCADONA
+// ══════════════════════════════════════════════════════════
+function buildShoppingData(){
+  const sections={};
+  weekMenu.forEach((rid,di)=>{
+    const r=R(rid);
+    r.ingredients.forEach(ing=>{
+      const sec=getSection(ing.n);
+      if(!sections[sec]) sections[sec]={};
+      const key=ing.n.toLowerCase().trim();
+      if(!sections[sec][key]) sections[sec][key]={name:ing.n,qty:ing.qty,days:[]};
+      sections[sec][key].days.push(DNUMS[di]);
+    });
+  });
+  return sections;
+}
+
+function renderCompra(){
+  const sections=buildShoppingData();
+  let totalItems=0;
+  Object.values(sections).forEach(sec=>totalItems+=Object.keys(sec).length);
+  const checked=checkedShop.size;
+
+  const el=document.getElementById('view-compra');
+  el.innerHTML=`
+    <div class="shop-header">
+      <h2>🛒 Lista Mercadona</h2>
+      <p>Generada según tu menú · actualizada automáticamente</p>
+      <div class="shop-stats">
+        <span class="shop-stat">✅ ${checked}/${totalItems} comprado</span>
+        <span class="shop-stat" style="color:var(--text3);">·</span>
+        <span class="shop-stat" style="color:var(--text3);">${totalItems-checked} pendientes</span>
+      </div>
+    </div>
+
+    <div class="shop-actions">
+      <button class="shop-act-btn mercadona" onclick="openMercadonaAll()">🟢 Abrir Mercadona online</button>
+      <button class="shop-act-btn" onclick="checkAllItems()">✅ Marcar todo</button>
+      <button class="shop-act-btn danger" onclick="uncheckAll()">↺ Desmarcar</button>
+    </div>
+
+    ${Object.entries(sections)
+      .filter(([,items])=>Object.keys(items).length>0)
+      .sort(([a],[b])=>a.localeCompare(b))
+      .map(([sec,items])=>`
+      <div class="shop-section">
+        <div class="shop-sec-head">
+          <span>${sec} (${Object.keys(items).length})</span>
+          <button class="shop-sec-mercadona" onclick="openMercadonaSection('${encodeURIComponent(sec)}',${JSON.stringify(Object.values(items).map(i=>i.name))})">Ver en Mercadona →</button>
+        </div>
+        <div class="shop-items">
+          ${Object.entries(items).map(([key,item])=>{
+            const sid=sec+'__'+key;
+            const chk=checkedShop.has(sid);
+            return `<div class="shop-item ${chk?'checked':''}" onclick="toggleShop('${sid.replace(/'/g,"\\'")}',this)">
+              <div class="shop-chk">${chk?'✓':''}</div>
+              <span class="shop-item-name">${item.name}</span>
+              <div class="shop-item-right">
+                <div class="shop-item-qty">${item.qty}</div>
+                <div class="shop-item-days">${item.days.join(' ')}</div>
+              </div>
+              <button class="shop-merc-btn" onclick="event.stopPropagation();searchMercadona('${encodeURIComponent(item.name)}')" title="Buscar en Mercadona">🟢</button>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`).join('')}`;
+}
+
+function searchMercadona(encodedName){
+  const name=decodeURIComponent(encodedName);
+  const url=`https://tienda.mercadona.es/search-results?query=${encodeURIComponent(name)}`;
+  window.open(url,'_blank');
+}
+
+function openMercadonaAll(){
+  window.open('https://tienda.mercadona.es','_blank');
+  toast('🟢 Abriendo Mercadona online...');
+}
+
+function openMercadonaSection(encodedSec, itemsJson){
+  const items=JSON.parse(decodeURIComponent(itemsJson)||'[]');
+  if(items.length>0) searchMercadona(encodeURIComponent(items[0]));
+}
+
+function toggleShop(id,el){
+  if(checkedShop.has(id)){ checkedShop.delete(id); el.classList.remove('checked'); el.querySelector('.shop-chk').textContent=''; }
+  else{ checkedShop.add(id); el.classList.add('checked'); el.querySelector('.shop-chk').textContent='✓'; }
+  saveShop();
+  // Update counter
+  const sections=buildShoppingData();
+  let total=0; Object.values(sections).forEach(s=>total+=Object.keys(s).length);
+  const stat=document.querySelector('.shop-stat');
+  if(stat) stat.textContent=`✅ ${checkedShop.size}/${total} comprado`;
+}
+
+function checkAllItems(){
+  document.querySelectorAll('.shop-item').forEach(el=>{
+    const fn=el.getAttribute('onclick');
+    const m=fn?.match(/toggleShop\('([^']+)'/);
+    if(m&&!checkedShop.has(m[1])){ checkedShop.add(m[1]); el.classList.add('checked'); el.querySelector('.shop-chk').textContent='✓'; }
+  });
+  saveShop();
+  const sections=buildShoppingData();
+  let total=0; Object.values(sections).forEach(s=>total+=Object.keys(s).length);
+  const stat=document.querySelector('.shop-stat');
+  if(stat) stat.textContent=`✅ ${checkedShop.size}/${total} comprado`;
+}
+
+function uncheckAll(){ checkedShop.clear(); saveShop(); renderCompra(); }
+
+// ══════════════════════════════════════════════════════════
+// CONNECTIVITY
+// ══════════════════════════════════════════════════════════
+function updateConnStatus(){
+  const pill=document.getElementById('conn-pill');
+  const bar=document.getElementById('offline-bar');
+  if(navigator.onLine){ pill.className='h-pill online'; pill.textContent='● online'; bar.classList.remove('show'); }
+  else{ pill.className='h-pill offline'; pill.textContent='● offline'; bar.classList.add('show'); }
+}
+window.addEventListener('online',updateConnStatus);
+window.addEventListener('offline',updateConnStatus);
+
+// ══════════════════════════════════════════════════════════
+// SERVICE WORKER REGISTRATION
+// ══════════════════════════════════════════════════════════
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js')
+      .then(()=>console.log('✅ Service Worker registrado'))
+      .catch(e=>console.log('SW error:',e));
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+updateConnStatus();
+renderHoy();
+renderMenu();
+renderBiblioteca();
+renderCompra();
+renderNutricion();
+</script>
+</body>
+</html>

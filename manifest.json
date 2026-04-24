@@ -1,0 +1,38 @@
+{
+  "name": "Chef en Casa",
+  "short_name": "Chef Casa",
+  "description": "Menú semanal, recetas guiadas y lista de la compra para tu familia",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0F0D0A",
+  "theme_color": "#F0913A",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["food", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "¿Qué cenamos hoy?",
+      "url": "./index.html#hoy",
+      "description": "Ver la cena de hoy"
+    },
+    {
+      "name": "Lista de la compra",
+      "url": "./index.html#compra",
+      "description": "Ver la lista de Mercadona"
+    }
+  ]
+}
