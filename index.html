@@ -329,6 +329,21 @@ nav::-webkit-scrollbar{display:none;}
   </div>
 </div>
 
+<!-- CREATE RECIPE MODAL -->
+<div class="modal-overlay" id="modal-create-recipe" onclick="closeCreateModal(event)">
+  <div class="modal-box" style="padding-bottom:calc(1.5rem + var(--safe-bottom));">
+    <div class="modal-title">✨ Crear receta con IA</div>
+    <p style="font-size:0.78rem;color:var(--text2);margin-bottom:0.85rem;">Escribe el nombre del plato y Claude generará la receta completa con ingredientes, pasos y valores nutricionales.</p>
+    <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;">
+      <input id="recipe-name-input" type="text" placeholder="Ej: Lentejas con chorizo, Pollo al horno..." style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:0.6rem 0.85rem;color:var(--text);font-family:'Cabinet Grotesk',sans-serif;font-size:0.85rem;outline:none;" onkeydown="if(event.key==='Enter')generateRecipeWithAI()">
+      <button id="create-recipe-btn" onclick="generateRecipeWithAI()" style="background:var(--orange);color:var(--bg);border:none;border-radius:9px;padding:0.6rem 1rem;font-family:'Cabinet Grotesk',sans-serif;font-size:0.8rem;font-weight:800;cursor:pointer;white-space:nowrap;">✨ Generar</button>
+    </div>
+    <div id="create-recipe-result"></div>
+    <button id="create-recipe-save-btn" onclick="saveNewRecipe()" style="display:none;width:100%;margin-top:0.75rem;padding:0.7rem;background:var(--green);color:white;border:none;border-radius:10px;font-family:'Cabinet Grotesk',sans-serif;font-size:0.85rem;font-weight:800;cursor:pointer;">✅ Guardar en mi biblioteca</button>
+    <button onclick="closeCreateModal()" style="width:100%;margin-top:0.5rem;padding:0.6rem;background:none;border:1px solid var(--border);border-radius:10px;color:var(--text2);font-family:'Cabinet Grotesk',sans-serif;font-size:0.8rem;font-weight:700;cursor:pointer;">Cancelar</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -599,9 +614,19 @@ let timerInterval=null;
 let timerSecs=0;
 let timerRunning=false;
 
-const FILTERS=["Todos","Favoritos","Pasta","Arroz","Pescado","Carne","Vegetariano","Mundo","ActiFry","Horneado","Postre"];
+const FILTERS=["Todos","Favoritos","<400 kcal","<500 kcal","Pasta","Arroz","Pescado","Carne","Vegetariano","Mundo","ActiFry","Horneado","Postre"];
 
-function R(id){ return RECIPES.find(r=>r.id===id)||RECIPES[0]; }
+// Custom recipes added by user (via AI generation)
+let customRecipes=loadStorage('chef_custom_recipes',[]);
+function saveCustomRecipes(){ saveStorage('chef_custom_recipes',customRecipes); }
+function getAllRecipes(){ return [...RECIPES,...customRecipes]; }
+function R(id){ return getAllRecipes().find(r=>r.id===id)||RECIPES[0]; }
+
+// Extra items added manually to shopping list
+let extraShopItems=loadStorage('chef_extra_shop',[]); // [{id,name,qty,sec}]
+function saveExtraShop(){ saveStorage('chef_extra_shop',extraShopItems); }
+
+
 
 // ══════════════════════════════════════════════════════════
 // UTILS
@@ -823,7 +848,7 @@ async function generateAIMenu(){
   const favIds=favorites.slice(0,10);
   const recentIds=[...new Set(cookedHistory.slice(0,20).map(h=>h.id))];
   const topRated=cookedHistory.filter(h=>h.rating>=4).map(h=>h.id).slice(0,10);
-  const recipeList=RECIPES.map(r=>`${r.id}:${r.name}(${r.cat}${r.tags.includes('kids')?',kids':''}${r.tags.includes('veg')?',veg':''})`).join('\n');
+  const recipeList=getAllRecipes().map(r=>`${r.id}:${r.name}(${r.cat}${r.tags.includes('kids')?',kids':''}${r.tags.includes('veg')?',veg':''})`).join('\n');
 
   const prompt=`Eres un chef y nutricionista. Genera un menú semanal de cenas para una familia española: mujer 49 años, hombre 53 años, niña 11 años. Sin alergias.
 
@@ -893,9 +918,12 @@ function openChangeDay(dayIdx){
 // BIBLIOTECA
 // ══════════════════════════════════════════════════════════
 function renderBiblioteca(changeMode=false,dayIdx=null){
-  let pool=RECIPES;
-  if(currentFilter==='Favoritos') pool=RECIPES.filter(r=>favorites.includes(r.id));
-  else if(currentFilter!=='Todos') pool=RECIPES.filter(r=>r.cat===currentFilter||(currentFilter==='Mundo'&&r.tags.includes('world'))||(currentFilter==='ActiFry'&&r.tags.includes('actifry')));
+  const all=getAllRecipes();
+  let pool=all;
+  if(currentFilter==='Favoritos') pool=all.filter(r=>favorites.includes(r.id));
+  else if(currentFilter==='<400 kcal') pool=all.filter(r=>r.kcal<400);
+  else if(currentFilter==='<500 kcal') pool=all.filter(r=>r.kcal<500);
+  else if(currentFilter!=='Todos') pool=all.filter(r=>r.cat===currentFilter||(currentFilter==='Mundo'&&r.tags.includes('world'))||(currentFilter==='ActiFry'&&r.tags.includes('actifry')));
 
   const el=document.getElementById('view-biblioteca');
   el.innerHTML=`
@@ -903,7 +931,11 @@ function renderBiblioteca(changeMode=false,dayIdx=null){
       <span style="font-size:1.2rem;">📅</span>
       <span style="flex:1;font-size:0.8rem;font-weight:600;">Elige para el <strong>${DAYS[dayIdx]}</strong></span>
       <button onclick="cancelChange()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:0.28rem 0.6rem;color:var(--text2);font-size:0.7rem;cursor:pointer;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;">✕ Cancelar</button>
-    </div>`:`<div class="sec">📚 Biblioteca · ${pool.length} recetas</div>`}
+    </div>`:`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.85rem;">
+      <div class="sec" style="margin:0;flex:1;">📚 Recetas · ${pool.length}</div>
+      <button onclick="openAIRecipeCreator()" style="background:var(--orange);color:var(--bg);border:none;border-radius:9px;padding:0.42rem 0.85rem;font-family:'Cabinet Grotesk',sans-serif;font-size:0.72rem;font-weight:800;cursor:pointer;white-space:nowrap;margin-left:0.75rem;">✨ Crear receta</button>
+    </div>`}
     <div class="filter-scroll">
       ${FILTERS.map(f=>`<button class="filt-btn ${f===currentFilter?'active':''}" onclick="setFilter('${f}',${changeMode},${dayIdx})">${f==='Favoritos'?'❤️ '+f:f}</button>`).join('')}
     </div>
@@ -911,12 +943,13 @@ function renderBiblioteca(changeMode=false,dayIdx=null){
       ${pool.map(r=>{
         const cooked=getCookedCount(r.id);
         const fav=isFav(r.id);
+        const isCustom=customRecipes.some(c=>c.id===r.id);
         return `<div class="lib-card" onclick="${changeMode?`assignDay(${r.id},${dayIdx})`:`openRecipe(${r.id},'biblioteca')`}">
           <div class="lib-thumb">
-            ${imgThumb(r.photo,r.emoji)}
+            ${imgThumb(r.photo||'',r.emoji)}
           </div>
           <div class="lib-info">
-            <h3>${r.name}</h3>
+            <h3>${r.name}${isCustom?' <span style="font-size:0.6rem;background:rgba(139,111,191,0.2);color:#C4A9F0;padding:0.1rem 0.4rem;border-radius:10px;font-weight:700;">MÍA</span>':''}</h3>
             <p>${r.desc}</p>
             <div class="lib-tags">
               <span class="tag time">⏱${r.time}</span>
@@ -929,10 +962,13 @@ function renderBiblioteca(changeMode=false,dayIdx=null){
           </div>
           ${changeMode
             ?`<span style="color:var(--green);font-weight:900;font-size:1.2rem;flex-shrink:0;">+</span>`
-            :`<button class="lib-fav-btn" onclick="event.stopPropagation();toggleFavAndUpdate(${r.id})">${fav?'❤️':'🤍'}</button>`}
+            :`<div style="display:flex;flex-direction:column;gap:0.3rem;flex-shrink:0;">
+                <button class="lib-fav-btn" onclick="event.stopPropagation();toggleFavAndUpdate(${r.id})">${fav?'❤️':'🤍'}</button>
+                ${isCustom?`<button onclick="event.stopPropagation();deleteCustomRecipe(${r.id})" style="background:none;border:none;font-size:0.9rem;cursor:pointer;opacity:0.5;" title="Eliminar receta">🗑</button>`:''}
+              </div>`}
         </div>`;
       }).join('')}
-      ${pool.length===0?`<div style="text-align:center;padding:2rem;color:var(--text3);">No hay recetas favoritas aún.<br>¡Explora la biblioteca y marca las que te gusten!</div>`:''}
+      ${pool.length===0?`<div style="text-align:center;padding:2rem;color:var(--text3);">No hay recetas en esta categoría.</div>`:''}
     </div>`;
 }
 
@@ -1295,6 +1331,14 @@ function buildShoppingData(){
 
 function renderCompra(){
   const sections=buildShoppingData();
+
+  // Inject extra manual items into sections
+  extraShopItems.forEach(item=>{
+    const sec=item.sec||'🛒 Extras';
+    if(!sections[sec]) sections[sec]={};
+    sections[sec]['__extra__'+item.id]={name:item.name,qty:item.qty||'',days:['➕'],isExtra:true,extraId:item.id};
+  });
+
   let totalItems=0;
   Object.values(sections).forEach(sec=>totalItems+=Object.keys(sec).length);
   const checked=checkedShop.size;
@@ -1317,9 +1361,18 @@ function renderCompra(){
       <button class="shop-act-btn danger" onclick="uncheckAll()">↺ Desmarcar</button>
     </div>
 
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:0.85rem;margin-bottom:1rem;">
+      <div style="font-size:0.72rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.6rem;">➕ Añadir producto</div>
+      <div style="display:flex;gap:0.5rem;">
+        <input id="extra-product-name" type="text" placeholder="Nombre del producto..." style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.75rem;color:var(--text);font-family:'Cabinet Grotesk',sans-serif;font-size:0.82rem;outline:none;" onkeydown="if(event.key==='Enter')addExtraProduct()">
+        <input id="extra-product-qty" type="text" placeholder="Cantidad" style="width:80px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.75rem;color:var(--text);font-family:'Cabinet Grotesk',sans-serif;font-size:0.82rem;outline:none;" onkeydown="if(event.key==='Enter')addExtraProduct()">
+        <button onclick="addExtraProduct()" style="background:var(--orange);color:var(--bg);border:none;border-radius:8px;padding:0.5rem 0.85rem;font-family:'Cabinet Grotesk',sans-serif;font-size:0.82rem;font-weight:800;cursor:pointer;white-space:nowrap;">Añadir</button>
+      </div>
+    </div>
+
     ${Object.entries(sections)
       .filter(([,items])=>Object.keys(items).length>0)
-      .sort(([a],[b])=>a.localeCompare(b))
+      .sort(([a],[b])=>a==='🛒 Extras'?1:b==='🛒 Extras'?-1:a.localeCompare(b))
       .map(([sec,items])=>`
       <div class="shop-section">
         <div class="shop-sec-head">
@@ -1334,14 +1387,36 @@ function renderCompra(){
               <div class="shop-chk">${chk?'✓':''}</div>
               <span class="shop-item-name">${item.name}</span>
               <div class="shop-item-right">
-                <div class="shop-item-qty">${item.qty}</div>
+                <div class="shop-item-qty">${item.qty||''}</div>
                 <div class="shop-item-days">${item.days.join(' ')}</div>
               </div>
-              <button class="shop-merc-btn" onclick="event.stopPropagation();searchMercadona('${encodeURIComponent(item.name)}')" title="Buscar en Mercadona">🟢</button>
+              ${item.isExtra
+                ?'<button class="shop-merc-btn" onclick="event.stopPropagation();deleteExtraItem('+item.extraId+')" title="Eliminar" style="opacity:0.7;">🗑</button>'
+                :`<button class="shop-merc-btn" onclick="event.stopPropagation();searchMercadona('${encodeURIComponent(item.name)}')" title="Buscar en Mercadona">🟢</button>`}
             </div>`;
           }).join('')}
         </div>
       </div>`).join('')}`;
+}
+
+function addExtraProduct(){
+  const nameEl=document.getElementById('extra-product-name');
+  const qtyEl=document.getElementById('extra-product-qty');
+  const name=nameEl.value.trim();
+  if(!name){ nameEl.focus(); return; }
+  const item={id:Date.now(),name,qty:qtyEl.value.trim(),sec:'🛒 Extras'};
+  extraShopItems.push(item);
+  saveExtraShop();
+  nameEl.value=''; qtyEl.value='';
+  nameEl.focus();
+  renderCompra();
+  toast(`➕ "${name}" añadido a la lista`);
+}
+
+function deleteExtraItem(id){
+  extraShopItems=extraShopItems.filter(i=>i.id!==id);
+  saveExtraShop();
+  renderCompra();
 }
 
 function searchMercadona(encodedName){
@@ -1385,6 +1460,128 @@ function checkAllItems(){
 }
 
 function uncheckAll(){ checkedShop.clear(); saveShop(); renderCompra(); }
+
+// ══════════════════════════════════════════════════════════
+// AI RECIPE CREATOR
+// ══════════════════════════════════════════════════════════
+function openAIRecipeCreator(){
+  const modal=document.getElementById('modal-create-recipe');
+  document.getElementById('recipe-name-input').value='';
+  document.getElementById('create-recipe-result').innerHTML='';
+  document.getElementById('create-recipe-save-btn').style.display='none';
+  modal.classList.add('open');
+  setTimeout(()=>document.getElementById('recipe-name-input').focus(),300);
+}
+function closeCreateModal(e){
+  if(!e||e.target===document.getElementById('modal-create-recipe'))
+    document.getElementById('modal-create-recipe').classList.remove('open');
+}
+
+let pendingNewRecipe=null;
+
+async function generateRecipeWithAI(){
+  const name=document.getElementById('recipe-name-input').value.trim();
+  if(!name){ toast('✏️ Escribe el nombre del plato'); return; }
+
+  const btn=document.getElementById('create-recipe-btn');
+  const result=document.getElementById('create-recipe-result');
+  const saveBtn=document.getElementById('create-recipe-save-btn');
+  btn.disabled=true; btn.textContent='⏳ Generando...';
+  result.innerHTML=`<div style="text-align:center;padding:1rem;color:var(--text2);font-size:0.8rem;"><div style="font-size:1.8rem;animation:spin 1s linear infinite;display:inline-block;">🤖</div><br>Claude está creando la receta...</div>`;
+  saveBtn.style.display='none';
+
+  const prompt=`Eres un chef experto. Crea una receta completa para: "${name}"
+
+La receta es para una familia española de 3 personas (2 adultos + niña de 11 años). Debe ser una cena rápida (máximo 30 min).
+
+Responde SOLO con un JSON válido, sin texto adicional ni backticks markdown:
+{
+  "name": "nombre exacto del plato",
+  "desc": "descripción breve y apetecible (máx 60 caracteres)",
+  "emoji": "un emoji representativo",
+  "time": "XX min",
+  "kcal": número_entero_por_persona,
+  "prot": gramos_proteína_por_persona,
+  "carbs": gramos_carbohidratos_por_persona,
+  "fat": gramos_grasa_por_persona,
+  "cat": "una de estas: Pasta|Arroz|Pescado|Carne|Vegetariano|Horneado|Postre|Sopa",
+  "tags": ["kids"] o ["veg"] o ["world"] o [] según corresponda,
+  "ingredients": [
+    {"qty": "cantidad", "n": "nombre del ingrediente"},
+    ... (6-8 ingredientes)
+  ],
+  "steps": [
+    {"t": "título corto del paso", "s": "instrucción detallada con <strong>tiempos</strong> en negrita", "timer": segundos_o_null},
+    ... (3-5 pasos)
+  ],
+  "tip": "truco del chef útil y concreto"
+}`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    const text=data.content.map(i=>i.text||'').join('');
+    const clean=text.replace(/```json|```/g,'').trim();
+    const recipe=JSON.parse(clean);
+
+    // Assign a unique ID
+    const allIds=getAllRecipes().map(r=>r.id);
+    recipe.id=Math.max(...allIds,1000)+1;
+    recipe.photo='';
+    recipe.mercadona=recipe.ingredients.map(i=>i.n);
+
+    pendingNewRecipe=recipe;
+
+    result.innerHTML=`
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-top:0.75rem;">
+        <div style="font-size:2rem;margin-bottom:0.4rem;">${recipe.emoji}</div>
+        <div style="font-family:'Fraunces',serif;font-size:1rem;font-weight:700;">${recipe.name}</div>
+        <div style="font-size:0.74rem;color:var(--text2);margin-top:0.15rem;">${recipe.desc}</div>
+        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.5rem;">
+          <span class="tag time">⏱ ${recipe.time}</span>
+          <span class="tag kcal">🔥 ${recipe.kcal} kcal</span>
+          <span class="tag cat">${recipe.cat}</span>
+        </div>
+        <div style="margin-top:0.75rem;font-size:0.75rem;color:var(--text2);">
+          <strong style="color:var(--text);">Ingredientes:</strong> ${recipe.ingredients.map(i=>i.n).join(', ')}
+        </div>
+        <div style="margin-top:0.4rem;font-size:0.75rem;color:var(--text2);">
+          <strong style="color:var(--text);">Pasos:</strong> ${recipe.steps.length} pasos · ${recipe.steps.map(s=>s.t).join(' → ')}
+        </div>
+      </div>`;
+    saveBtn.style.display='block';
+  } catch(e){
+    result.innerHTML=`<div style="color:var(--red);font-size:0.8rem;padding:0.75rem;text-align:center;">❌ Error al generar. Comprueba la conexión e inténtalo de nuevo.</div>`;
+  }
+
+  btn.disabled=false; btn.textContent='✨ Generar receta';
+}
+
+function saveNewRecipe(){
+  if(!pendingNewRecipe) return;
+  customRecipes.push(pendingNewRecipe);
+  saveCustomRecipes();
+  document.getElementById('modal-create-recipe').classList.remove('open');
+  pendingNewRecipe=null;
+  renderBiblioteca();
+  toast(`✅ "${customRecipes[customRecipes.length-1].name}" añadida a tu biblioteca`);
+}
+
+function deleteCustomRecipe(id){
+  const r=R(id);
+  if(!confirm(`¿Eliminar "${r.name}" de tu biblioteca?`)) return;
+  customRecipes=customRecipes.filter(c=>c.id!==id);
+  saveCustomRecipes();
+  // Remove from menu if present
+  weekMenu=weekMenu.map(mid=>mid===id?1:mid);
+  saveMenu();
+  renderBiblioteca();
+  toast('🗑 Receta eliminada');
+}
 
 // ══════════════════════════════════════════════════════════
 // CONNECTIVITY
