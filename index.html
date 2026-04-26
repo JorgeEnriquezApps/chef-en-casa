@@ -242,6 +242,8 @@ nav::-webkit-scrollbar{display:none;}
 .shop-act-btn:hover{border-color:var(--orange);color:var(--orange);}
 .shop-act-btn.mercadona{background:rgba(0,99,65,0.15);border-color:rgba(0,99,65,0.4);color:#00c870;}
 .shop-act-btn.mercadona:hover{background:rgba(0,99,65,0.25);}
+.shop-act-btn.carrefour-btn{background:rgba(0,74,150,0.15);border-color:rgba(0,74,150,0.4);color:#4A9FE8;}
+.shop-act-btn.carrefour-btn:hover{background:rgba(0,74,150,0.25);}
 .shop-act-btn.danger{border-color:rgba(217,95,75,0.4);color:var(--red);}
 
 .shop-section{margin-bottom:1.1rem;}
@@ -326,6 +328,38 @@ nav::-webkit-scrollbar{display:none;}
     <div class="modal-title">📅 ¿En qué día poner esta receta?</div>
     <div class="modal-day-grid" id="modal-day-grid"></div>
     <button class="modal-cancel" onclick="closeAssignModal()">Cancelar</button>
+  </div>
+</div>
+
+<!-- GESTIONAR RECETAS MODAL -->
+<div class="modal-overlay" id="modal-gestionar" onclick="closeGestionar(event)">
+  <div class="modal-box" style="max-height:92vh;padding:1.25rem 1.1rem calc(1.5rem + var(--safe-bottom));">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.85rem;">
+      <div style="font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700;">⚙️ Gestionar recetas</div>
+      <button onclick="closeGestionar()" style="background:none;border:none;color:var(--text3);font-size:1.3rem;cursor:pointer;padding:0.2rem;">✕</button>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:0.4rem;margin-bottom:1rem;">
+      <button id="gtab-base" onclick="switchGTab('base')" style="flex:1;padding:0.45rem;border-radius:8px;border:1px solid var(--orange);background:var(--orange);color:var(--bg);font-family:'Cabinet Grotesk',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;">📚 Base (${RECIPES.length})</button>
+      <button id="gtab-mias" onclick="switchGTab('mias')" style="flex:1;padding:0.45rem;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Cabinet Grotesk',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;">🟣 Mis recetas</button>
+      <button id="gtab-hidden" onclick="switchGTab('hidden')" style="flex:1;padding:0.45rem;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'Cabinet Grotesk',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;">🗑 Eliminadas</button>
+    </div>
+
+    <div id="gestionar-content" style="overflow-y:auto;max-height:65vh;"></div>
+  </div>
+</div>
+
+<!-- EDIT RECIPE MODAL -->
+<div class="modal-overlay" id="modal-edit-recipe" onclick="closeEditModal(event)">
+  <div class="modal-box" style="padding-bottom:calc(1.5rem + var(--safe-bottom));">
+    <div style="font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700;margin-bottom:0.85rem;">✏️ Editar receta</div>
+    <div id="edit-recipe-fields"></div>
+    <div style="display:flex;gap:0.5rem;margin-top:0.85rem;">
+      <button onclick="saveRecipeEdit()" style="flex:1;background:var(--orange);color:var(--bg);border:none;border-radius:9px;padding:0.65rem;font-family:'Cabinet Grotesk',sans-serif;font-size:0.82rem;font-weight:800;cursor:pointer;">Guardar</button>
+      <button onclick="closeEditModal()" style="flex:1;background:none;border:1px solid var(--border);border-radius:9px;padding:0.65rem;color:var(--text2);font-family:'Cabinet Grotesk',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;">Cancelar</button>
+    </div>
   </div>
 </div>
 
@@ -571,6 +605,8 @@ let favorites=loadStorage('chef_favorites',[]);
 let cookedHistory=loadStorage('chef_history',[]); // [{id,date,rating}]
 let weekMenu=loadStorage('chef_menu',[1,13,9,7,18,11,19]);
 let checkedShop=new Set(loadStorage('chef_shop',[]));
+let supermarket=loadStorage('chef_supermarket','mercadona'); // 'mercadona' | 'carrefour'
+function saveSupermarket(){ saveStorage('chef_supermarket',supermarket); }
 
 function saveFavorites(){ saveStorage('chef_favorites',favorites); }
 function saveHistory(){ saveStorage('chef_history',cookedHistory); }
@@ -619,7 +655,38 @@ const FILTERS=["Todos","Favoritos","<400 kcal","<500 kcal","Pasta","Arroz","Pesc
 // Custom recipes added by user (via AI generation)
 let customRecipes=loadStorage('chef_custom_recipes',[]);
 function saveCustomRecipes(){ saveStorage('chef_custom_recipes',customRecipes); }
-function getAllRecipes(){ return [...RECIPES,...customRecipes]; }
+
+// IDs of base recipes the user has hidden (deleted from their view)
+let hiddenBaseIds=new Set(loadStorage('chef_hidden_base',[]));
+function saveHiddenBase(){ saveStorage('chef_hidden_base',[...hiddenBaseIds]); }
+
+// Custom sort order for base recipes (array of IDs). Empty = default order.
+let baseOrder=loadStorage('chef_base_order',[]);
+function saveBaseOrder(){ saveStorage('chef_base_order',baseOrder); }
+
+// Edits to base recipe fields {id: {name, desc, kcal, time, cat}}
+let baseEdits=loadStorage('chef_base_edits',{});
+function saveBaseEdits(){ saveStorage('chef_base_edits',baseEdits); }
+
+function applyEdits(r){
+  const e=baseEdits[r.id];
+  if(!e) return r;
+  return {...r,...e};
+}
+
+function getAllRecipes(){
+  // Base recipes: apply edits, filter hidden, apply custom order
+  let base=RECIPES.filter(r=>!hiddenBaseIds.has(r.id)).map(applyEdits);
+  if(baseOrder.length){
+    const orderMap=new Map(baseOrder.map((id,i)=>[id,i]));
+    base.sort((a,b)=>{
+      const ai=orderMap.has(a.id)?orderMap.get(a.id):9999;
+      const bi=orderMap.has(b.id)?orderMap.get(b.id):9999;
+      return ai-bi;
+    });
+  }
+  return [...base,...customRecipes];
+}
 function R(id){ return getAllRecipes().find(r=>r.id===id)||RECIPES[0]; }
 
 // Extra items added manually to shopping list
@@ -934,7 +1001,10 @@ function renderBiblioteca(changeMode=false,dayIdx=null){
     </div>`:`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.85rem;">
       <div class="sec" style="margin:0;flex:1;">📚 Recetas · ${pool.length}</div>
-      <button onclick="openAIRecipeCreator()" style="background:var(--orange);color:var(--bg);border:none;border-radius:9px;padding:0.42rem 0.85rem;font-family:'Cabinet Grotesk',sans-serif;font-size:0.72rem;font-weight:800;cursor:pointer;white-space:nowrap;margin-left:0.75rem;">✨ Crear receta</button>
+      <div style="display:flex;gap:0.4rem;margin-left:0.75rem;">
+        <button onclick="openGestionar()" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:9px;padding:0.42rem 0.75rem;font-family:'Cabinet Grotesk',sans-serif;font-size:0.72rem;font-weight:800;cursor:pointer;white-space:nowrap;">⚙️ Gestionar</button>
+        <button onclick="openAIRecipeCreator()" style="background:var(--orange);color:var(--bg);border:none;border-radius:9px;padding:0.42rem 0.85rem;font-family:'Cabinet Grotesk',sans-serif;font-size:0.72rem;font-weight:800;cursor:pointer;white-space:nowrap;">✨ Crear</button>
+      </div>
     </div>`}
     <div class="filter-scroll">
       ${FILTERS.map(f=>`<button class="filt-btn ${f===currentFilter?'active':''}" onclick="setFilter('${f}',${changeMode},${dayIdx})">${f==='Favoritos'?'❤️ '+f:f}</button>`).join('')}
@@ -1346,17 +1416,27 @@ function renderCompra(){
   const el=document.getElementById('view-compra');
   el.innerHTML=`
     <div class="shop-header">
-      <h2>🛒 Lista Mercadona</h2>
+      <h2>🛒 Lista de la compra</h2>
       <p>Generada según tu menú · actualizada automáticamente</p>
       <div class="shop-stats">
         <span class="shop-stat">✅ ${checked}/${totalItems} comprado</span>
         <span class="shop-stat" style="color:var(--text3);">·</span>
         <span class="shop-stat" style="color:var(--text3);">${totalItems-checked} pendientes</span>
       </div>
+      <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+        <button onclick="setSupermarket('mercadona')" style="flex:1;padding:0.5rem;border-radius:9px;border:2px solid ${supermarket==='mercadona'?'#00c870':'var(--border)'};background:${supermarket==='mercadona'?'rgba(0,99,65,0.2)':'var(--surface2)'};color:${supermarket==='mercadona'?'#00c870':'var(--text2)'};font-family:'Cabinet Grotesk',sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s;">
+          🟢 Mercadona
+        </button>
+        <button onclick="setSupermarket('carrefour')" style="flex:1;padding:0.5rem;border-radius:9px;border:2px solid ${supermarket==='carrefour'?'#004A96':'var(--border)'};background:${supermarket==='carrefour'?'rgba(0,74,150,0.2)':'var(--surface2)'};color:${supermarket==='carrefour'?'#4A9FE8':'var(--text2)'};font-family:'Cabinet Grotesk',sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s;">
+          🔵 Carrefour
+        </button>
+      </div>
     </div>
 
     <div class="shop-actions">
-      <button class="shop-act-btn mercadona" onclick="openMercadonaAll()">🟢 Abrir Mercadona online</button>
+      <button class="shop-act-btn ${supermarket==='mercadona'?'mercadona':'carrefour-btn'}" onclick="openSupermarketHome()">
+        ${supermarket==='mercadona'?'🟢 Ir a Mercadona online':'🔵 Ir a Carrefour online'}
+      </button>
       <button class="shop-act-btn" onclick="checkAllItems()">✅ Marcar todo</button>
       <button class="shop-act-btn danger" onclick="uncheckAll()">↺ Desmarcar</button>
     </div>
@@ -1377,7 +1457,7 @@ function renderCompra(){
       <div class="shop-section">
         <div class="shop-sec-head">
           <span>${sec} (${Object.keys(items).length})</span>
-          <button class="shop-sec-mercadona" onclick="openMercadonaSection('${encodeURIComponent(sec)}',${JSON.stringify(Object.values(items).map(i=>i.name))})">Ver en Mercadona →</button>
+          <button class="shop-sec-mercadona" onclick="searchSupermarket('${encodeURIComponent(Object.values(items)[0].name)}')">Ver en ${supermarket==='mercadona'?'Mercadona':'Carrefour'} →</button>
         </div>
         <div class="shop-items">
           ${Object.entries(items).map(([key,item])=>{
@@ -1392,7 +1472,7 @@ function renderCompra(){
               </div>
               ${item.isExtra
                 ?'<button class="shop-merc-btn" onclick="event.stopPropagation();deleteExtraItem('+item.extraId+')" title="Eliminar" style="opacity:0.7;">🗑</button>'
-                :`<button class="shop-merc-btn" onclick="event.stopPropagation();searchMercadona('${encodeURIComponent(item.name)}')" title="Buscar en Mercadona">🟢</button>`}
+                :`<button class="shop-merc-btn" onclick="event.stopPropagation();searchSupermarket('${encodeURIComponent(item.name)}')" title="Buscar en ${supermarket==='mercadona'?'Mercadona':'Carrefour'}">${supermarket==='mercadona'?'🟢':'🔵'}</button>`}
             </div>`;
           }).join('')}
         </div>
@@ -1419,21 +1499,31 @@ function deleteExtraItem(id){
   renderCompra();
 }
 
-function searchMercadona(encodedName){
+function setSupermarket(s){
+  supermarket=s; saveSupermarket();
+  renderCompra();
+  toast(s==='mercadona'?'🟢 Mercadona seleccionado':'🔵 Carrefour seleccionado');
+}
+
+function searchSupermarket(encodedName){
   const name=decodeURIComponent(encodedName);
-  const url=`https://tienda.mercadona.es/search-results?query=${encodeURIComponent(name)}`;
+  const url=supermarket==='mercadona'
+    ?`https://tienda.mercadona.es/search-results?query=${encodeURIComponent(name)}`
+    :`https://www.carrefour.es/supermercado/search?q=${encodeURIComponent(name)}`;
   window.open(url,'_blank');
 }
 
-function openMercadonaAll(){
-  window.open('https://tienda.mercadona.es','_blank');
-  toast('🟢 Abriendo Mercadona online...');
+function openSupermarketHome(){
+  const url=supermarket==='mercadona'
+    ?'https://tienda.mercadona.es'
+    :'https://www.carrefour.es/supermercado';
+  window.open(url,'_blank');
+  toast(supermarket==='mercadona'?'🟢 Abriendo Mercadona...':'🔵 Abriendo Carrefour...');
 }
 
-function openMercadonaSection(encodedSec, itemsJson){
-  const items=JSON.parse(decodeURIComponent(itemsJson)||'[]');
-  if(items.length>0) searchMercadona(encodeURIComponent(items[0]));
-}
+// Keep legacy alias just in case
+function searchMercadona(e){ searchSupermarket(e); }
+function openMercadonaAll(){ openSupermarketHome(); }
 
 function toggleShop(id,el){
   if(checkedShop.has(id)){ checkedShop.delete(id); el.classList.remove('checked'); el.querySelector('.shop-chk').textContent=''; }
@@ -1586,6 +1676,287 @@ function deleteCustomRecipe(id){
 // ══════════════════════════════════════════════════════════
 // CONNECTIVITY
 // ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// GESTIONAR RECETAS
+// ══════════════════════════════════════════════════════════
+let currentGTab = 'base';
+let draggingId = null;
+let editingRecipeId = null;
+
+function openGestionar(){
+  currentGTab = 'base';
+  document.getElementById('modal-gestionar').classList.add('open');
+  renderGestionar();
+}
+function closeGestionar(e){
+  if(!e || e.target===document.getElementById('modal-gestionar'))
+    document.getElementById('modal-gestionar').classList.remove('open');
+}
+function switchGTab(tab){
+  currentGTab = tab;
+  ['base','mias','hidden'].forEach(t=>{
+    const btn = document.getElementById('gtab-'+t);
+    const active = t===tab;
+    btn.style.background = active ? 'var(--orange)' : 'var(--surface2)';
+    btn.style.color = active ? 'var(--bg)' : 'var(--text2)';
+    btn.style.borderColor = active ? 'var(--orange)' : 'var(--border)';
+  });
+  renderGestionar();
+}
+
+function renderGestionar(){
+  const el = document.getElementById('gestionar-content');
+
+  if(currentGTab === 'base'){
+    const visible = RECIPES.filter(r=>!hiddenBaseIds.has(r.id)).map(applyEdits);
+    el.innerHTML = `
+      <p style="font-size:0.72rem;color:var(--text2);margin-bottom:0.75rem;">
+        ${visible.length} recetas visibles · ${hiddenBaseIds.size} eliminadas.
+        Arrastra las filas para reordenar.
+      </p>
+      <div id="drag-list" style="display:flex;flex-direction:column;gap:0.4rem;">
+        ${visible.map((r,i)=>`
+          <div class="g-row" data-id="${r.id}" draggable="true"
+            ondragstart="dragStart(event,${r.id})"
+            ondragover="dragOver(event)"
+            ondrop="dropOn(event,${r.id})"
+            ondragend="dragEnd()"
+            style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0.6rem 0.75rem;display:flex;align-items:center;gap:0.6rem;touch-action:none;">
+            <span style="font-size:1.1rem;cursor:grab;color:var(--text3);">⠿</span>
+            <span style="font-size:1.2rem;">${r.emoji}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:0.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.name}</div>
+              <div style="font-size:0.65rem;color:var(--text3);">${r.cat} · ${r.time} · ${r.kcal} kcal</div>
+            </div>
+            <button onclick="openEditRecipe(${r.id})" style="background:none;border:1px solid var(--border);border-radius:7px;padding:0.25rem 0.5rem;color:var(--text2);font-size:0.68rem;cursor:pointer;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;">✏️</button>
+            <button onclick="hideBaseRecipe(${r.id})" style="background:none;border:1px solid rgba(217,95,75,0.3);border-radius:7px;padding:0.25rem 0.5rem;color:var(--red);font-size:0.68rem;cursor:pointer;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;">🗑</button>
+          </div>`).join('')}
+      </div>`;
+
+    // Touch drag support for mobile
+    setupTouchDrag();
+
+  } else if(currentGTab === 'mias'){
+    el.innerHTML = customRecipes.length ? `
+      <p style="font-size:0.72rem;color:var(--text2);margin-bottom:0.75rem;">${customRecipes.length} recetas creadas por ti con IA.</p>
+      <div style="display:flex;flex-direction:column;gap:0.4rem;">
+        ${customRecipes.map(r=>`
+          <div style="background:var(--surface);border:1px solid rgba(139,111,191,0.3);border-radius:10px;padding:0.6rem 0.75rem;display:flex;align-items:center;gap:0.6rem;">
+            <span style="font-size:1.2rem;">${r.emoji}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:0.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.name}</div>
+              <div style="font-size:0.65rem;color:var(--text3);">${r.cat} · ${r.time} · ${r.kcal} kcal</div>
+            </div>
+            <button onclick="openEditRecipe(${r.id})" style="background:none;border:1px solid var(--border);border-radius:7px;padding:0.25rem 0.5rem;color:var(--text2);font-size:0.68rem;cursor:pointer;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;">✏️</button>
+            <button onclick="deleteCustomRecipe(${r.id});renderGestionar();" style="background:none;border:1px solid rgba(217,95,75,0.3);border-radius:7px;padding:0.25rem 0.5rem;color:var(--red);font-size:0.68rem;cursor:pointer;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;">🗑</button>
+          </div>`).join('')}
+      </div>` :
+      `<div style="text-align:center;padding:2rem;color:var(--text3);">
+        <div style="font-size:2.5rem;margin-bottom:0.5rem;">🤖</div>
+        <p style="font-size:0.82rem;">Aún no has creado recetas propias.<br>Usa el botón ✨ Crear en la biblioteca.</p>
+      </div>`;
+
+  } else { // hidden
+    const hidden = RECIPES.filter(r=>hiddenBaseIds.has(r.id)).map(applyEdits);
+    el.innerHTML = hidden.length ? `
+      <p style="font-size:0.72rem;color:var(--text2);margin-bottom:0.75rem;">
+        ${hidden.length} recetas eliminadas. Puedes restaurarlas.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:0.4rem;">
+        ${hidden.map(r=>`
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0.6rem 0.75rem;display:flex;align-items:center;gap:0.6rem;opacity:0.65;">
+            <span style="font-size:1.2rem;">${r.emoji}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:0.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.name}</div>
+              <div style="font-size:0.65rem;color:var(--text3);">${r.cat} · ${r.time}</div>
+            </div>
+            <button onclick="restoreBaseRecipe(${r.id})" style="background:var(--green);border:none;border-radius:7px;padding:0.28rem 0.65rem;color:white;font-size:0.68rem;cursor:pointer;font-family:'Cabinet Grotesk',sans-serif;font-weight:700;">↩ Restaurar</button>
+          </div>`).join('')}
+      </div>
+      <button onclick="restoreAllRecipes()" style="margin-top:0.85rem;width:100%;padding:0.55rem;background:none;border:1px solid var(--green);border-radius:9px;color:var(--green);font-family:'Cabinet Grotesk',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;">↩ Restaurar todas</button>` :
+      `<div style="text-align:center;padding:2rem;color:var(--text3);">
+        <div style="font-size:2.5rem;margin-bottom:0.5rem;">✅</div>
+        <p style="font-size:0.82rem;">No has eliminado ninguna receta.</p>
+      </div>`;
+  }
+}
+
+// ── HIDE / RESTORE BASE RECIPES ──
+function hideBaseRecipe(id){
+  hiddenBaseIds.add(id);
+  saveHiddenBase();
+  // Remove from menu if present
+  weekMenu = weekMenu.map(mid => mid===id ? RECIPES.find(r=>!hiddenBaseIds.has(r.id))?.id || 1 : mid);
+  saveMenu();
+  renderGestionar();
+  renderBiblioteca();
+  renderMenu();
+  toast('🗑 Receta eliminada de la biblioteca');
+}
+function restoreBaseRecipe(id){
+  hiddenBaseIds.delete(id);
+  saveHiddenBase();
+  renderGestionar();
+  renderBiblioteca();
+  toast('↩ Receta restaurada');
+}
+function restoreAllRecipes(){
+  hiddenBaseIds.clear();
+  saveHiddenBase();
+  renderGestionar();
+  renderBiblioteca();
+  toast('↩ Todas las recetas restauradas');
+}
+
+// ── DRAG AND DROP REORDER (desktop) ──
+function dragStart(e, id){
+  draggingId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.style.opacity = '0.4';
+}
+function dragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.g-row').forEach(r=>r.style.borderColor='var(--border)');
+  e.currentTarget.style.borderColor = 'var(--orange)';
+}
+function dropOn(e, targetId){
+  e.preventDefault();
+  if(draggingId === targetId) return;
+  // Build current visible order
+  const visible = RECIPES.filter(r=>!hiddenBaseIds.has(r.id)).map(applyEdits);
+  let order = baseOrder.length ? [...baseOrder] : visible.map(r=>r.id);
+  // Ensure all visible IDs are in order array
+  visible.forEach(r=>{ if(!order.includes(r.id)) order.push(r.id); });
+  const fromIdx = order.indexOf(draggingId);
+  const toIdx   = order.indexOf(targetId);
+  if(fromIdx<0||toIdx<0) return;
+  order.splice(fromIdx,1);
+  order.splice(toIdx,0,draggingId);
+  baseOrder = order;
+  saveBaseOrder();
+  renderGestionar();
+}
+function dragEnd(){
+  draggingId = null;
+  document.querySelectorAll('.g-row').forEach(r=>{
+    r.style.opacity='1';
+    r.style.borderColor='var(--border)';
+  });
+}
+
+// ── TOUCH DRAG (mobile) ──
+function setupTouchDrag(){
+  const rows = document.querySelectorAll('.g-row');
+  let touchDragId = null;
+  let ghost = null;
+
+  rows.forEach(row=>{
+    row.addEventListener('touchstart', e=>{
+      touchDragId = parseInt(row.dataset.id);
+      row.style.opacity='0.4';
+      ghost = row.cloneNode(true);
+      ghost.style.cssText='position:fixed;pointer-events:none;z-index:999;opacity:0.85;width:'+row.offsetWidth+'px;background:var(--surface);border:2px solid var(--orange);border-radius:10px;';
+      document.body.appendChild(ghost);
+    },{passive:true});
+
+    row.addEventListener('touchmove', e=>{
+      if(!ghost) return;
+      const t = e.touches[0];
+      ghost.style.left = (t.clientX - ghost.offsetWidth/2) + 'px';
+      ghost.style.top  = (t.clientY - 30) + 'px';
+      // Highlight target
+      document.querySelectorAll('.g-row').forEach(r=>r.style.borderColor='var(--border)');
+      const el = document.elementFromPoint(t.clientX, t.clientY)?.closest('.g-row');
+      if(el && el!==row) el.style.borderColor='var(--orange)';
+    },{passive:true});
+
+    row.addEventListener('touchend', e=>{
+      if(ghost){ ghost.remove(); ghost=null; }
+      row.style.opacity='1';
+      const t = e.changedTouches[0];
+      const target = document.elementFromPoint(t.clientX, t.clientY)?.closest('.g-row');
+      if(target && touchDragId){
+        const targetId = parseInt(target.dataset.id);
+        if(targetId !== touchDragId){
+          const visible = RECIPES.filter(r=>!hiddenBaseIds.has(r.id)).map(applyEdits);
+          let order = baseOrder.length ? [...baseOrder] : visible.map(r=>r.id);
+          visible.forEach(r=>{ if(!order.includes(r.id)) order.push(r.id); });
+          const fi=order.indexOf(touchDragId), ti=order.indexOf(targetId);
+          if(fi>=0&&ti>=0){ order.splice(fi,1); order.splice(ti,0,touchDragId); }
+          baseOrder=order; saveBaseOrder(); renderGestionar();
+        }
+      }
+      touchDragId=null;
+    },{passive:true});
+  });
+}
+
+// ── EDIT RECIPE ──
+function openEditRecipe(id){
+  editingRecipeId = id;
+  const r = R(id);
+  const isCustom = customRecipes.some(c=>c.id===id);
+  const el = document.getElementById('edit-recipe-fields');
+
+  const field = (label, key, val, type='text') => `
+    <div style="margin-bottom:0.65rem;">
+      <label style="font-size:0.68rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:0.3rem;">${label}</label>
+      <input id="ef-${key}" type="${type}" value="${String(val).replace(/"/g,'&quot;')}"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.75rem;color:var(--text);font-family:'Cabinet Grotesk',sans-serif;font-size:0.82rem;outline:none;">
+    </div>`;
+
+  const cats = ['Pasta','Arroz','Pescado','Carne','Vegetariano','Horneado','Postre','Sopa','Mundo'];
+  el.innerHTML = `
+    ${field('Nombre','name',r.name)}
+    ${field('Descripción breve','desc',r.desc)}
+    ${field('Emoji','emoji',r.emoji)}
+    ${field('Tiempo (ej: 20 min)','time',r.time)}
+    ${field('Calorías por persona','kcal',r.kcal,'number')}
+    <div style="margin-bottom:0.65rem;">
+      <label style="font-size:0.68rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:0.3rem;">Categoría</label>
+      <select id="ef-cat" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.75rem;color:var(--text);font-family:'Cabinet Grotesk',sans-serif;font-size:0.82rem;outline:none;">
+        ${cats.map(c=>`<option value="${c}" ${r.cat===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <p style="font-size:0.68rem;color:var(--text3);">Los ingredientes y pasos se pueden crear con IA usando ✨ Crear receta.</p>`;
+
+  document.getElementById('modal-edit-recipe').classList.add('open');
+}
+
+function closeEditModal(e){
+  if(!e || e.target===document.getElementById('modal-edit-recipe'))
+    document.getElementById('modal-edit-recipe').classList.remove('open');
+}
+
+function saveRecipeEdit(){
+  const id = editingRecipeId;
+  const isCustom = customRecipes.some(c=>c.id===id);
+  const edits = {
+    name:  document.getElementById('ef-name').value.trim(),
+    desc:  document.getElementById('ef-desc').value.trim(),
+    emoji: document.getElementById('ef-emoji').value.trim(),
+    time:  document.getElementById('ef-time').value.trim(),
+    kcal:  parseInt(document.getElementById('ef-kcal').value)||0,
+    cat:   document.getElementById('ef-cat').value,
+  };
+  if(!edits.name){ toast('⚠️ El nombre no puede estar vacío'); return; }
+
+  if(isCustom){
+    const idx = customRecipes.findIndex(c=>c.id===id);
+    if(idx>=0){ customRecipes[idx]={...customRecipes[idx],...edits}; saveCustomRecipes(); }
+  } else {
+    baseEdits[id] = {...(baseEdits[id]||{}),...edits};
+    saveBaseEdits();
+  }
+
+  document.getElementById('modal-edit-recipe').classList.remove('open');
+  renderGestionar();
+  renderBiblioteca();
+  renderMenu();
+  toast(`✅ "${edits.name}" actualizada`);
+}
+
 function updateConnStatus(){
   const pill=document.getElementById('conn-pill');
   const bar=document.getElementById('offline-bar');
