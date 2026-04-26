@@ -943,7 +943,7 @@ Responde SOLO con JSON sin texto adicional ni backticks:
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:prompt}]})
     });
     const data=await res.json();
@@ -1610,7 +1610,7 @@ Responde SOLO con un JSON válido, sin texto adicional ni backticks markdown:
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,messages:[{role:'user',content:prompt}]})
     });
     const data=await res.json();
@@ -1967,13 +1967,93 @@ window.addEventListener('online',updateConnStatus);
 window.addEventListener('offline',updateConnStatus);
 
 // ══════════════════════════════════════════════════════════
-// SERVICE WORKER REGISTRATION
+// ══════════════════════════════════════════════════════════
+// SERVICE WORKER — inline via Blob (funciona sin servidor)
 // ══════════════════════════════════════════════════════════
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('./sw.js')
-      .then(()=>console.log('✅ Service Worker registrado'))
-      .catch(e=>console.log('SW error:',e));
+  window.addEventListener('load', () => {
+    const host = location.hostname;
+    const isPreview = host.includes('claudeusercontent') || host.includes('localhost') || host === '';
+    if(isPreview) return; // Sin SW en previsualizadores — funciona en GitHub Pages
+
+    const swCode = `
+const CACHE = 'chef-en-casa-v2';
+const CORE = ['./'];
+
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+  if(url.hostname === 'api.anthropic.com') return;
+
+  // Imágenes Unsplash: cache-first
+  if(url.hostname.includes('unsplash.com')){
+    e.respondWith(
+      caches.open(CACHE).then(async cache => {
+        const cached = await cache.match(e.request);
+        if(cached) return cached;
+        try {
+          const fresh = await fetch(e.request);
+          if(fresh.ok) cache.put(e.request, fresh.clone());
+          return fresh;
+        } catch {
+          return new Response(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect width="400" height="300" fill="#1A1712"/><text x="50%" y="50%" text-anchor="middle" fill="#5A5248" font-size="60" dy=".3em">🍽️</text></svg>',
+            { headers: { 'Content-Type': 'image/svg+xml' } }
+          );
+        }
+      })
+    );
+    return;
+  }
+
+  // Fuentes Google: cache-first
+  if(url.hostname.includes('fonts.g')){
+    e.respondWith(
+      caches.open(CACHE).then(async cache => {
+        const cached = await cache.match(e.request);
+        if(cached) return cached;
+        try { const f = await fetch(e.request); if(f.ok) cache.put(e.request, f.clone()); return f; }
+        catch { return cached || new Response('', {status:503}); }
+      })
+    );
+    return;
+  }
+
+  // HTML principal: network-first con fallback a cache
+  if(e.request.mode === 'navigate'){
+    e.respondWith(
+      fetch(e.request)
+        .then(r => { caches.open(CACHE).then(c => c.put(e.request, r.clone())); return r; })
+        .catch(() => caches.match(e.request))
+    );
+  }
+});
+    `;
+
+    try {
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      const swUrl = URL.createObjectURL(blob);
+      navigator.serviceWorker.register(swUrl)
+        .then(reg => {
+          console.log('✅ Service Worker registrado (inline)');
+          // Liberar el blob URL cuando ya no hace falta
+          reg.addEventListener('updatefound', () => URL.revokeObjectURL(swUrl));
+        })
+        .catch(e => console.log('SW no disponible:', e.message));
+    } catch(e) {
+      console.log('SW blob no soportado:', e.message);
+    }
   });
 }
 
