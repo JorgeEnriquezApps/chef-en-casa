@@ -944,7 +944,7 @@ Responde SOLO con JSON sin texto adicional ni backticks:
     const res=await fetch('https://chef-proxy.jer-gijon.workers.dev',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:200,messages:[{role:'user',content:prompt}]})
     });
     const data=await res.json();
     const text=data.content.map(i=>i.text||'').join('');
@@ -1611,7 +1611,7 @@ Responde SOLO con un JSON válido, sin texto adicional ni backticks markdown:
     const res=await fetch('https://chef-proxy.jer-gijon.workers.dev',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1200,messages:[{role:'user',content:prompt}]})
     });
     console.log('API status:', res.status);
     const data=await res.json();
