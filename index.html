@@ -1003,6 +1003,8 @@ function renderBiblioteca(changeMode=false,dayIdx=null){
       <div class="sec" style="margin:0;flex:1;">📚 Recetas · ${pool.length}</div>
       <div style="display:flex;gap:0.4rem;margin-left:0.75rem;">
         <button onclick="openGestionar()" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:9px;padding:0.42rem 0.75rem;font-family:'Cabinet Grotesk',sans-serif;font-size:0.72rem;font-weight:800;cursor:pointer;white-space:nowrap;">⚙️ Gestionar</button>
+        <button onclick="triggerImport()" style="background:var(--surface2);color:var(--blue);border:1px solid rgba(74,143,191,0.4);border-radius:9px;padding:0.42rem 0.75rem;font-family:'Cabinet Grotesk',sans-serif;font-size:0.72rem;font-weight:800;cursor:pointer;white-space:nowrap;">📥 Importar</button>
+        <input type="file" id="import-file-input" accept=".json" style="display:none;" onchange="importRecipesFromFile(event)">
         <button onclick="openAIRecipeCreator()" style="background:var(--orange);color:var(--bg);border:none;border-radius:9px;padding:0.42rem 0.85rem;font-family:'Cabinet Grotesk',sans-serif;font-size:0.72rem;font-weight:800;cursor:pointer;white-space:nowrap;">✨ Crear</button>
       </div>
     </div>`}
@@ -1743,7 +1745,10 @@ function renderGestionar(){
 
   } else if(currentGTab === 'mias'){
     el.innerHTML = customRecipes.length ? `
-      <p style="font-size:0.72rem;color:var(--text2);margin-bottom:0.75rem;">${customRecipes.length} recetas creadas por ti con IA.</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+        <p style="font-size:0.72rem;color:var(--text2);">${customRecipes.length} recetas creadas por ti.</p>
+        <button onclick="exportMyRecipes()" style="background:none;border:1px solid rgba(74,143,191,0.4);border-radius:8px;padding:0.28rem 0.65rem;color:var(--blue);font-size:0.68rem;font-weight:700;cursor:pointer;font-family:'Cabinet Grotesk',sans-serif;">📤 Exportar</button>
+      </div>
       <div style="display:flex;flex-direction:column;gap:0.4rem;">
         ${customRecipes.map(r=>`
           <div style="background:var(--surface);border:1px solid rgba(139,111,191,0.3);border-radius:10px;padding:0.6rem 0.75rem;display:flex;align-items:center;gap:0.6rem;">
@@ -1960,6 +1965,95 @@ function saveRecipeEdit(){
   renderBiblioteca();
   renderMenu();
   toast(`✅ "${edits.name}" actualizada`);
+}
+
+// ══════════════════════════════════════════════════════════
+// IMPORTAR / EXPORTAR RECETAS
+// ══════════════════════════════════════════════════════════
+function triggerImport(){
+  document.getElementById('import-file-input').click();
+}
+
+function importRecipesFromFile(event){
+  const file = event.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const data = JSON.parse(e.target.result);
+
+      // Accept both array and {recipes:[...]} format
+      const incoming = Array.isArray(data) ? data : (data.recipes || []);
+      if(!incoming.length) throw new Error('No se encontraron recetas en el archivo');
+
+      // Validate minimum structure
+      const valid = incoming.filter(r => r.name && r.ingredients && r.steps);
+      if(!valid.length) throw new Error('El archivo no tiene el formato correcto');
+
+      // Avoid duplicates by ID and by name
+      const existingIds = new Set(getAllRecipes().map(r => r.id));
+      const existingNames = new Set(getAllRecipes().map(r => r.name.toLowerCase().trim()));
+
+      let added = 0, skipped = 0;
+      valid.forEach(r => {
+        // Assign new ID if conflicts
+        if(existingIds.has(r.id)){
+          r.id = Math.max(...getAllRecipes().map(x=>x.id), 2000) + added + 1;
+        }
+        if(existingNames.has(r.name.toLowerCase().trim())){
+          skipped++;
+          return;
+        }
+        // Fill optional fields with defaults
+        r.kcal = r.kcal || 400;
+        r.prot = r.prot || 20;
+        r.carbs = r.carbs || 40;
+        r.fat = r.fat || 14;
+        r.cat = r.cat || 'Otros';
+        r.tags = r.tags || [];
+        r.photo = r.photo || '';
+        r.emoji = r.emoji || '🍽️';
+        r.desc = r.desc || '';
+        r.time = r.time || '20 min';
+        r.tip = r.tip || '';
+        r.mercadona = r.mercadona || r.ingredients.map(i=>i.n);
+
+        customRecipes.push(r);
+        existingIds.add(r.id);
+        existingNames.add(r.name.toLowerCase().trim());
+        added++;
+      });
+
+      saveCustomRecipes();
+      renderBiblioteca();
+      renderMenu();
+
+      const msg = skipped > 0
+        ? `✅ ${added} recetas importadas · ${skipped} ya existían`
+        : `✅ ${added} recetas importadas correctamente`;
+      toast(msg);
+
+    } catch(err) {
+      toast(`❌ Error: ${err.message}`);
+    }
+
+    // Reset input so same file can be re-imported if needed
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function exportMyRecipes(){
+  const data = JSON.stringify(customRecipes, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'mis-recetas-chef-en-casa.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('📤 Recetas exportadas');
 }
 
 function updateConnStatus(){
