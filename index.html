@@ -941,9 +941,9 @@ Responde SOLO con JSON sin texto adicional ni backticks:
 {"menu":[id1,id2,id3,id4,id5,id6,id7]}`;
 
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch('https://chef-proxy.jer-gijon.workers.dev',{
       method:'POST',
-      headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:prompt}]})
     });
     const data=await res.json();
@@ -1608,9 +1608,9 @@ Responde SOLO con un JSON válido, sin texto adicional ni backticks markdown:
 }`;
 
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch('https://chef-proxy.jer-gijon.workers.dev',{
       method:'POST',
-      headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,messages:[{role:'user',content:prompt}]})
     });
     console.log('API status:', res.status);
@@ -1999,7 +1999,7 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-  if(url.hostname === 'api.anthropic.com') return;
+  if(url.hostname === 'api.anthropic.com' || url.hostname.includes('workers.dev')) return;
 
   // Imágenes Unsplash: cache-first
   if(url.hostname.includes('unsplash.com')){
