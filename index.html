@@ -650,7 +650,7 @@ let timerInterval=null;
 let timerSecs=0;
 let timerRunning=false;
 
-const FILTERS=["Todos","Favoritos","<400 kcal","<500 kcal","Pasta","Arroz","Pescado","Carne","Vegetariano","Mundo","ActiFry","Horneado","Postre"];
+const FILTERS=["Todos","Favoritos","<400 kcal","<500 kcal","Pasta","Arroz","Pescado","Carne","Vegetariano","Mundo","ActiFry","Horneado","Postre","Sopa"];
 
 // Custom recipes added by user (via AI generation)
 let customRecipes=loadStorage('chef_custom_recipes',[]);
@@ -699,14 +699,11 @@ function saveExtraShop(){ saveStorage('chef_extra_shop',extraShopItems); }
 // UTILS
 // ══════════════════════════════════════════════════════════
 function showView(name){
+  stopTimer(); // Fix 8: always stop timer when navigating away
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
-  const order=['hoy','menu','biblioteca','cocinar','historial','nutricion','compra'];
-  const navOrder=['hoy','menu','biblioteca','cocinar',null,'nutricion','compra'];
-  const ni=navOrder.indexOf(name);
-  if(ni>=0&&ni<6) document.querySelectorAll('.nav-btn')[ni>=4?ni-1:ni]&&
-    document.querySelectorAll('.nav-btn')[ni>=4?ni:ni].classList.add('active');
+  // Fix 4: single clean navMap, no dead code
   const navMap={hoy:0,menu:1,biblioteca:2,cocinar:3,nutricion:4,compra:5};
   if(navMap[name]!==undefined) document.querySelectorAll('.nav-btn')[navMap[name]].classList.add('active');
   if(name==='hoy') renderHoy();
@@ -806,15 +803,16 @@ function renderHoy(){
 }
 
 function randomToday(){
-  const r=RECIPES[Math.floor(Math.random()*RECIPES.length)];
+  const r=getAllRecipes()[Math.floor(Math.random()*getAllRecipes().length)];
   openRecipe(r.id,'hoy');
 }
 
 function getUncheckedCount(){
-  const total=buildShoppingData();
-  let n=0;
-  Object.values(total).forEach(sec=>n+=Object.keys(sec).length);
-  return n-checkedShop.size;
+  const sections=buildShoppingData();
+  let total=0;
+  Object.values(sections).forEach(sec=>total+=Object.keys(sec).length);
+  total+=extraShopItems.length; // Fix 6: include manual extra items
+  return Math.max(0, total-checkedShop.size);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -944,7 +942,7 @@ Responde SOLO con JSON sin texto adicional ni backticks:
     const res=await fetch('https://chef-proxy.jer-gijon.workers.dev',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:200,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,messages:[{role:'user',content:prompt}]})
     });
     const data=await res.json();
     const text=data.content.map(i=>i.text||'').join('');
@@ -990,7 +988,12 @@ function renderBiblioteca(changeMode=false,dayIdx=null){
   if(currentFilter==='Favoritos') pool=all.filter(r=>favorites.includes(r.id));
   else if(currentFilter==='<400 kcal') pool=all.filter(r=>r.kcal<400);
   else if(currentFilter==='<500 kcal') pool=all.filter(r=>r.kcal<500);
-  else if(currentFilter!=='Todos') pool=all.filter(r=>r.cat===currentFilter||(currentFilter==='Mundo'&&r.tags.includes('world'))||(currentFilter==='ActiFry'&&r.tags.includes('actifry')));
+  else if(currentFilter!=='Todos') pool=all.filter(r=>{
+    if(currentFilter==='Mundo') return r.tags.includes('world')||r.cat==='Mundo';
+    if(currentFilter==='ActiFry') return r.tags.includes('actifry')||r.cat==='ActiFry';
+    if(currentFilter==='Sopa') return r.cat==='Sopa';
+    return r.cat===currentFilter;
+  });
 
   const el=document.getElementById('view-biblioteca');
   el.innerHTML=`
@@ -1064,9 +1067,9 @@ function assignDay(recipeId,dayIdx){
 function openRecipe(id,origin='biblioteca'){
   recipeOrigin=origin; currentRecipeId=id;
   renderRecipeDetail(id);
-  document.getElementById('view-receta').classList.remove('active');
+  // Fix 7: single pass — hide all views, then show recipe
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-receta').classList.add('active');
-  document.querySelectorAll('.view').forEach(v=>{if(v.id!=='view-receta')v.classList.remove('active');});
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -1283,7 +1286,7 @@ function renderHistorial(){
   const uniqueCooked=new Set(cookedHistory.map(h=>h.id)).size;
   const favCount=favorites.length;
 
-  const topRated=[...RECIPES].filter(r=>getLastRating(r.id)>=4).sort((a,b)=>getLastRating(b.id)-getLastRating(a.id)).slice(0,5);
+  const topRated=[...getAllRecipes()].filter(r=>getLastRating(r.id)>=4).sort((a,b)=>getLastRating(b.id)-getLastRating(a.id)).slice(0,5);
   const recent=[...new Map(cookedHistory.map(h=>[h.id,h])).values()].slice(0,10);
 
   el.innerHTML=`
@@ -1305,7 +1308,7 @@ function renderHistorial(){
     </div>`).join('')}`:''}
 
     ${favorites.length?`<div class="sec">❤️ Favoritas</div>
-    ${RECIPES.filter(r=>favorites.includes(r.id)).map(r=>`<div class="hist-item" onclick="openRecipe(${r.id},'historial')">
+    ${getAllRecipes().filter(r=>favorites.includes(r.id)).map(r=>`<div class="hist-item" onclick="openRecipe(${r.id},'historial')">
       <div class="hist-emoji">${r.emoji}</div>
       <div class="hist-info">
         <h3>${r.name}</h3>
@@ -1351,7 +1354,7 @@ function renderNutricion(){
     <div class="nutr-summary">
       <div><div class="ns-val">${Math.round(totalKcal/7)}</div><div class="ns-label">kcal/día</div></div>
       <div><div class="ns-val">${Math.round(totalProt/7)}g</div><div class="ns-label">Proteína/día</div></div>
-      <div><div class="ns-val">${Math.round(totalKcal/3)}</div><div class="ns-label">kcal/semana</div></div>
+      <div><div class="ns-val">${Math.round(totalKcal/3)}</div><div class="ns-label">kcal/pers/semana</div></div>
     </div>
     <div class="sec">Cenas día a día</div>
     <div class="nutr-week">
@@ -1465,7 +1468,7 @@ function renderCompra(){
           ${Object.entries(items).map(([key,item])=>{
             const sid=sec+'__'+key;
             const chk=checkedShop.has(sid);
-            return `<div class="shop-item ${chk?'checked':''}" onclick="toggleShop('${sid.replace(/'/g,"\\'")}',this)">
+            return `<div class="shop-item ${chk?'checked':''}" data-shop-id="${sid}" onclick="toggleShop('${sid.replace(/'/g,"\\'")}',this)">
               <div class="shop-chk">${chk?'✓':''}</div>
               <span class="shop-item-name">${item.name}</span>
               <div class="shop-item-right">
@@ -1539,18 +1542,22 @@ function toggleShop(id,el){
 }
 
 function checkAllItems(){
-  document.querySelectorAll('.shop-item').forEach(el=>{
-    const fn=el.getAttribute('onclick');
-    const m=fn?.match(/toggleShop\('([^']+)'/);
-    if(m&&!checkedShop.has(m[1])){ checkedShop.add(m[1]); el.classList.add('checked'); el.querySelector('.shop-chk').textContent='✓'; }
+  document.querySelectorAll('.shop-item[data-shop-id]').forEach(el=>{
+    const id=el.dataset.shopId;
+    if(!checkedShop.has(id)){
+      checkedShop.add(id);
+      el.classList.add('checked');
+      const chk=el.querySelector('.shop-chk');
+      if(chk) chk.textContent='✓';
+    }
   });
   saveShop();
   const sections=buildShoppingData();
   let total=0; Object.values(sections).forEach(s=>total+=Object.keys(s).length);
+  total+=extraShopItems.length;
   const stat=document.querySelector('.shop-stat');
   if(stat) stat.textContent=`✅ ${checkedShop.size}/${total} comprado`;
 }
-
 function uncheckAll(){ checkedShop.clear(); saveShop(); renderCompra(); }
 
 // ══════════════════════════════════════════════════════════
@@ -1613,7 +1620,7 @@ Responde SOLO con un JSON válido, sin texto adicional ni backticks markdown:
     const res=await fetch('https://chef-proxy.jer-gijon.workers.dev',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1200,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1200,messages:[{role:'user',content:prompt}]})
     });
     console.log('API status:', res.status);
     const data=await res.json();
